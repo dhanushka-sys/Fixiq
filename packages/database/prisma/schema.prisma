@@ -1,0 +1,435 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  OWNER
+  MANAGER
+  TECHNICIAN
+  VIEWER
+}
+
+enum RepairStatus {
+  RECEIVED
+  INSPECTION
+  DIAGNOSIS
+  AWAITING_APPROVAL
+  REPAIRING
+  TESTING
+  COMPLETED
+  CANCELLED
+  UNREPAIRABLE
+  RETURNED
+}
+
+enum SymptomCategory {
+  POWER
+  DISPLAY
+  CHARGING
+  AUDIO
+  CONNECTIVITY
+  THERMAL
+  PERFORMANCE
+  PHYSICAL_DAMAGE
+  SENSORS
+  OTHER
+}
+
+enum ComponentCategory {
+  PMIC
+  MOSFET
+  BUCK_CONTROLLER
+  LDO
+  CAPACITOR
+  RESISTOR
+  DIODE
+  INDUCTOR
+  USB_PD_CONTROLLER
+  CHARGING_IC
+  AUDIO_CODEC
+  EMBEDDED_CONTROLLER
+  CONNECTOR
+  CRYSTAL_OSCILLATOR
+  LOGIC_GATE
+  DISPLAY_PANEL
+  BATTERY
+  KEYBOARD
+  OTHER
+}
+
+enum RepairActionType {
+  REPLACED
+  REPAIRED
+  REFLOWED
+  REBALLED
+  CLEANED
+  RESEATED
+  REPROGRAMMED
+  UPDATED
+  ADJUSTED
+  NO_ACTION
+}
+
+enum TestOutcome {
+  SUCCESSFUL
+  PARTIAL
+  FAILED
+  UNREPAIRABLE
+  UNKNOWN
+}
+
+enum EvidenceConfidence {
+  VERY_LOW
+  LOW
+  MODERATE
+  HIGH
+  VERY_HIGH
+}
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users                 User[]
+  customers             Customer[]
+  devices               Device[]
+  repairJobs            RepairJob[]
+  diagnosticObservations DiagnosticObservation[]
+  suspectedComponents   SuspectedComponent[]
+  confirmedComponents   ConfirmedComponent[]
+  repairActions         RepairAction[]
+  repairTests           RepairTest[]
+  failurePatterns       FailurePattern[]
+  repeatFailureAlerts   RepeatFailureAlert[]
+  symptoms              Symptom[]
+
+  @@map("organizations")
+}
+
+model User {
+  id             String       @id @default(uuid())
+  organizationId String
+  email          String       @unique
+  passwordHash   String
+  name           String
+  role           UserRole     @default(TECHNICIAN)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assignedRepairs RepairJob[] @relation("AssignedTechnician")
+  observations   DiagnosticObservation[]
+  suspectedComponents SuspectedComponent[]
+  confirmedComponents ConfirmedComponent[]
+  repairActions  RepairAction[]
+  repairTests    RepairTest[]
+
+  @@index([organizationId])
+  @@map("users")
+}
+
+model Customer {
+  id             String       @id @default(uuid())
+  organizationId String
+  name           String
+  email          String?
+  phone          String?
+  address        String?
+  notes          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  devices        Device[]
+
+  @@index([organizationId])
+  @@index([email])
+  @@index([phone])
+  @@map("customers")
+}
+
+model DeviceModel {
+  id           String   @id @default(uuid())
+  manufacturer String
+  modelName    String
+  modelNumber  String
+  deviceType   String   @default("Laptop")
+  boardNumber  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  devices         Device[]
+  failurePatterns FailurePattern[]
+
+  @@unique([manufacturer, modelNumber])
+  @@index([manufacturer])
+  @@index([boardNumber])
+  @@map("device_models")
+}
+
+model Device {
+  id             String       @id @default(uuid())
+  organizationId String
+  customerId     String
+  modelId        String
+  serialNumber   String
+  assetTag       String?
+  purchaseDate   DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer       Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  model          DeviceModel  @relation(fields: [modelId], references: [id])
+  repairJobs     RepairJob[]
+  repeatAlerts   RepeatFailureAlert[]
+
+  @@unique([organizationId, serialNumber])
+  @@index([organizationId])
+  @@index([modelId])
+  @@index([serialNumber])
+  @@map("devices")
+}
+
+model Symptom {
+  id             String          @id @default(uuid())
+  organizationId String?
+  category       SymptomCategory
+  name           String
+  description    String?
+  severity       String          @default("MEDIUM")
+  isCustom       Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+
+  organization    Organization?   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  repairJobLinks  RepairJobSymptom[]
+  failurePatterns FailurePattern[]
+
+  @@unique([category, name, organizationId])
+  @@index([category])
+  @@map("symptoms")
+}
+
+model RepairJob {
+  id                   String       @id @default(uuid())
+  organizationId       String
+  deviceId             String
+  assignedTechnicianId String?
+  status               RepairStatus @default(RECEIVED)
+  priority             String       @default("NORMAL")
+  intakeCondition      Json
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  completedAt          DateTime?
+
+  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  device               Device       @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  assignedTechnician   User?        @relation("AssignedTechnician", fields: [assignedTechnicianId], references: [id])
+
+  symptoms             RepairJobSymptom[]
+  observations         DiagnosticObservation[]
+  suspectedComponents SuspectedComponent[]
+  confirmedComponents ConfirmedComponent[]
+  repairActions        RepairAction[]
+  repairTests          RepairTest[]
+
+  @@index([organizationId])
+  @@index([deviceId])
+  @@index([status])
+  @@index([assignedTechnicianId])
+  @@map("repair_jobs")
+}
+
+model RepairJobSymptom {
+  repairJobId String
+  symptomId   String
+
+  repairJob   RepairJob @relation(fields: [repairJobId], references: [id], onDelete: Cascade)
+  symptom     Symptom   @relation(fields: [symptomId], references: [id], onDelete: Cascade)
+
+  @@id([repairJobId, symptomId])
+  @@map("repair_job_symptoms")
+}
+
+model DiagnosticObservation {
+  id                  String       @id @default(uuid())
+  organizationId      String
+  repairJobId         String
+  technicianId        String
+  powersOn            Boolean?
+  standbyCurrentAmps  Float?
+  activeCurrentAmps   Float?
+  vbusVoltageVolts    Float?
+  vbusCurrentAmps     Float?
+  thermalDeltaCelsius Float?
+  shortedPowerRails   String[]     @default([])
+  diodeModeReadings   Json         @default("{}")
+  notes               String?
+  createdAt           DateTime     @default(now())
+
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  repairJob           RepairJob    @relation(fields: [repairJobId], references: [id], onDelete: Cascade)
+  technician          User         @relation(fields: [technicianId], references: [id])
+
+  @@index([organizationId])
+  @@index([repairJobId])
+  @@map("diagnostic_observations")
+}
+
+model Component {
+  id               String            @id @default(uuid())
+  category         ComponentCategory
+  manufacturer     String?
+  partNumber       String            @unique
+  designatorPrefix String
+  description      String?
+  packageType      String?
+  createdAt        DateTime          @default(now())
+
+  suspectedIn      SuspectedComponent[]
+  confirmedIn      ConfirmedComponent[]
+  actions          RepairAction[]
+  failurePatterns  FailurePattern[]
+
+  @@index([category])
+  @@index([partNumber])
+  @@map("components")
+}
+
+model SuspectedComponent {
+  id                String       @id @default(uuid())
+  organizationId    String
+  repairJobId       String
+  componentId       String
+  circuitDesignator String
+  confidenceNote    String?
+  technicianId      String
+  createdAt         DateTime     @default(now())
+
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  repairJob         RepairJob    @relation(fields: [repairJobId], references: [id], onDelete: Cascade)
+  component         Component    @relation(fields: [componentId], references: [id])
+  technician        User         @relation(fields: [technicianId], references: [id])
+
+  @@index([organizationId])
+  @@index([repairJobId])
+  @@index([componentId])
+  @@map("suspected_components")
+}
+
+model ConfirmedComponent {
+  id                String       @id @default(uuid())
+  organizationId    String
+  repairJobId       String
+  componentId       String
+  circuitDesignator String
+  failureMode       String
+  isRootCause       Boolean      @default(true)
+  technicianId      String
+  confirmedAt       DateTime     @default(now())
+
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  repairJob         RepairJob    @relation(fields: [repairJobId], references: [id], onDelete: Cascade)
+  component         Component    @relation(fields: [componentId], references: [id])
+  technician        User         @relation(fields: [technicianId], references: [id])
+
+  @@index([organizationId])
+  @@index([repairJobId])
+  @@index([componentId])
+  @@map("confirmed_components")
+}
+
+model RepairAction {
+  id                    String           @id @default(uuid())
+  organizationId        String
+  repairJobId           String
+  componentId           String?
+  circuitDesignator     String?
+  actionType            RepairActionType
+  replacementPartNumber String?
+  donorBoardNumber      String?
+  notes                 String?
+  technicianId          String
+  createdAt             DateTime         @default(now())
+
+  organization          Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  repairJob             RepairJob        @relation(fields: [repairJobId], references: [id], onDelete: Cascade)
+  component             Component?       @relation(fields: [componentId], references: [id])
+  technician            User             @relation(fields: [technicianId], references: [id])
+
+  @@index([organizationId])
+  @@index([repairJobId])
+  @@map("repair_actions")
+}
+
+model RepairTest {
+  id             String       @id @default(uuid())
+  organizationId String
+  repairJobId    String
+  testType       String
+  outcome        TestOutcome
+  measurements   Json         @default("{}")
+  technicianId   String
+  testedAt       DateTime     @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  repairJob      RepairJob    @relation(fields: [repairJobId], references: [id], onDelete: Cascade)
+  technician     User         @relation(fields: [technicianId], references: [id])
+
+  @@index([organizationId])
+  @@index([repairJobId])
+  @@index([outcome])
+  @@map("repair_tests")
+}
+
+model FailurePattern {
+  id                 String             @id @default(uuid())
+  organizationId     String?
+  deviceModelId      String
+  symptomId          String
+  componentId        String
+  circuitDesignator  String
+  totalCases         Int                @default(1)
+  confirmedCases     Int                @default(1)
+  successfulRepairs  Int                @default(1)
+  confidenceScore    Float              @default(0.5)
+  confidenceLevel    EvidenceConfidence @default(MODERATE)
+  lastCalculatedAt   DateTime           @default(now())
+
+  organization       Organization?      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deviceModel        DeviceModel        @relation(fields: [deviceModelId], references: [id], onDelete: Cascade)
+  symptom            Symptom            @relation(fields: [symptomId], references: [id], onDelete: Cascade)
+  component          Component          @relation(fields: [componentId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, deviceModelId, symptomId, componentId, circuitDesignator])
+  @@index([deviceModelId])
+  @@index([symptomId])
+  @@index([componentId])
+  @@map("failure_patterns")
+}
+
+model RepeatFailureAlert {
+  id             String       @id @default(uuid())
+  organizationId String
+  deviceId       String
+  alertLevel     String       @default("WARNING")
+  previousJobIds Json
+  patternSummary String
+  detectedAt     DateTime     @default(now())
+  resolvedAt     DateTime?
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  device         Device       @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([deviceId])
+  @@map("repeat_failure_alerts")
+}

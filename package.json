@@ -1,0 +1,31 @@
+{
+  "name": "fixiq-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Fixiq - Repair Intelligence Platform",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "dev:api": "npm run dev --workspace=@fixiq/api",
+    "dev:web": "npm run dev --workspace=@fixiq/web",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "db:generate": "npm run generate --workspace=@fixiq/database",
+    "db:migrate": "npm run migrate --workspace=@fixiq/database",
+    "db:seed": "npm run seed --workspace=@fixiq/database"
+  },
+  "keywords": [
+    "repair-intelligence",
+    "electronics-repair",
+    "micro-soldering",
+    "diagnostics",
+    "failure-patterns"
+  ],
+  "author": "Fixiq Contributors",
+  "license": "MIT"
+}
