@@ -8,7 +8,7 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "concurrently -k -p \"[{name}]\" -n \"API,WEB\" -c \"cyan,magenta\" \"npm:dev:api\" \"npm:dev:web\"",
+    "dev": "powershell -ExecutionPolicy Bypass -File ./scripts/db.ps1 ensure && concurrently -k -p \"[{name}]\" -n \"API,WEB\" -c \"cyan,magenta\" \"npm:dev:api\" \"npm:dev:web\"",
     "dev:api": "npm run dev --workspace=@fixiq/api",
     "dev:web": "npm run dev --workspace=@fixiq/web",
     "build": "npm run build --workspaces --if-present",
@@ -19,8 +19,9 @@
     "db:migrate": "npm run migrate --workspace=@fixiq/database",
     "db:push": "npx prisma db push --schema packages/database/prisma/schema.prisma",
     "db:seed": "npm run seed --workspace=@fixiq/database",
-    "db:start": "powershell -Command \"pg_ctl -D .pgdata -l .pgdata/server.log -o '-p 5433' start\"",
-    "db:stop": "powershell -Command \"pg_ctl -D .pgdata stop\""
+    "db:start": "powershell -ExecutionPolicy Bypass -File ./scripts/db.ps1 start",
+    "db:stop": "powershell -ExecutionPolicy Bypass -File ./scripts/db.ps1 stop",
+    "db:status": "powershell -ExecutionPolicy Bypass -File ./scripts/db.ps1 status"
   },
   "keywords": [
     "repair-intelligence",
