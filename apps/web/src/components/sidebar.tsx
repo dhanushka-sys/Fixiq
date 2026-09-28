@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -14,7 +14,6 @@ import {
   Network,
   BarChart3,
   Settings,
-  ShieldCheck,
   ChevronLeft,
   ChevronRight,
   Sparkles,
@@ -35,6 +34,29 @@ export function Sidebar({
   onCloseMobile,
 }: SidebarProps) {
   const pathname = usePathname();
+
+  // Close mobile drawer on ESC key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && mobileOpen) {
+        onCloseMobile();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mobileOpen, onCloseMobile]);
+
+  // Prevent background scroll when mobile drawer is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileOpen]);
 
   const navGroups = [
     {
@@ -76,7 +98,7 @@ export function Sidebar({
         <Link
           href="/"
           onClick={onCloseMobile}
-          className="flex items-center space-x-3 overflow-hidden group"
+          className="flex items-center space-x-3 overflow-hidden group py-1"
         >
           <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 flex items-center justify-center shadow-md shadow-cyan-500/20 shrink-0 group-hover:scale-105 transition-transform">
             <Cpu className="h-5 w-5 text-white" />
@@ -93,10 +115,11 @@ export function Sidebar({
           )}
         </Link>
 
-        {/* Mobile close button */}
+        {/* Mobile close button with accessible tap target */}
         <button
           onClick={onCloseMobile}
-          className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+          className="lg:hidden p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+          aria-label="Close navigation"
         >
           <X className="h-5 w-5" />
         </button>
@@ -105,13 +128,13 @@ export function Sidebar({
         <button
           onClick={onToggleCollapse}
           className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-          title={collapsed ? 'Expand sidebar (240px)' : 'Collapse sidebar (68px)'}
+          title={collapsed ? 'Expand sidebar (240px)' : 'Collapse sidebar (72px)'}
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </button>
       </div>
 
-      {/* Nav items scrollable list */}
+      {/* Nav items scrollable list with comfortable touch padding */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
         {navGroups.map((section, idx) => (
           <div key={idx} className="space-y-1">
@@ -134,7 +157,7 @@ export function Sidebar({
                     href={item.href}
                     onClick={onCloseMobile}
                     title={collapsed ? item.label : undefined}
-                    className={`flex items-center rounded-xl transition-all font-medium text-xs sm:text-sm group ${
+                    className={`flex items-center rounded-xl transition-all font-medium text-xs sm:text-sm group min-h-[42px] ${
                       collapsed ? 'justify-center p-2.5' : 'px-3 py-2 space-x-3'
                     } ${
                       isActive
@@ -213,16 +236,16 @@ export function Sidebar({
         {sidebarContent}
       </aside>
 
-      {/* Mobile Slide-Out Drawer */}
+      {/* Mobile Slide-Out Drawer with Backdrop and Touch Dismissal */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex">
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs transition-opacity duration-200"
             onClick={onCloseMobile}
           />
           {/* Drawer content */}
-          <div className="relative w-[260px] max-w-[80vw] h-full shadow-2xl z-10 animate-slideRight">
+          <div className="relative w-[270px] max-w-[85vw] h-full shadow-2xl z-10 animate-in slide-in-from-left duration-200">
             {sidebarContent}
           </div>
         </div>

@@ -266,9 +266,9 @@ export default function WorkbenchPage() {
           </p>
         </div>
 
-        {/* Board Switcher */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+        {/* Board Switcher - Horizontal scroll on mobile */}
+        <div className="flex items-center space-x-2 overflow-x-auto pb-1.5 sm:pb-0 scrollbar-none max-w-full">
+          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider shrink-0 hidden sm:inline">
             Board:
           </span>
           {DEVICE_PRESETS.map((device) => {
@@ -277,13 +277,13 @@ export default function WorkbenchPage() {
               <button
                 key={device.id}
                 onClick={() => handleDeviceChange(device)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center space-x-2 ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center space-x-2 shrink-0 whitespace-nowrap ${
                   isActive
-                    ? 'bg-cyan-600 text-white dark:bg-cyan-500 dark:text-slate-950 font-bold shadow-sm ring-1 ring-cyan-500/40'
+                    ? 'bg-cyan-600 text-white dark:bg-cyan-500 dark:text-slate-950 font-bold shadow-xs ring-1 ring-cyan-500/40'
                     : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
                 }`}
               >
-                <Laptop className="h-3.5 w-3.5" />
+                <Laptop className="h-3.5 w-3.5 shrink-0" />
                 <span>{device.name}</span>
                 <span
                   className={`text-[10px] px-1.5 py-0.2 rounded font-mono ${
@@ -298,8 +298,8 @@ export default function WorkbenchPage() {
         </div>
       </div>
 
-      {/* 5-Step Workflow Stepper */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-xs">
+      {/* 5-Step Workflow Stepper - Responsive Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 text-center text-xs">
         {[
           { step: 1, label: '1. Device Intake', desc: 'S/N & Customer' },
           { step: 2, label: '2. Symptoms', desc: 'Reported faults' },
@@ -313,9 +313,9 @@ export default function WorkbenchPage() {
             <div
               key={s.step}
               onClick={() => setCurrentStep(s.step)}
-              className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+              className={`p-2.5 rounded-xl border transition-all cursor-pointer select-none ${
                 isCurrent
-                  ? 'bg-cyan-50 dark:bg-cyan-950/60 border-cyan-400 dark:border-cyan-500/60 text-cyan-800 dark:text-white font-bold shadow-sm'
+                  ? 'bg-cyan-50 dark:bg-cyan-950/60 border-cyan-400 dark:border-cyan-500/60 text-cyan-800 dark:text-white font-bold shadow-xs'
                   : isPassed
                   ? 'bg-emerald-50 dark:bg-slate-900/50 border-emerald-300 dark:border-emerald-800/40 text-emerald-800 dark:text-emerald-300'
                   : 'bg-white dark:bg-slate-950/40 border-slate-200 dark:border-slate-800/60 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-300'
