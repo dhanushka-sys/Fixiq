@@ -487,11 +487,11 @@ export default function WorkbenchPage() {
               </div>
             </div>
 
-            {/* Invariant Educational Tag */}
+            {/* Ground-Truth Evidence Badge */}
             <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/90 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 flex items-start space-x-3">
               <ShieldCheck className="h-5 w-5 text-cyan-600 dark:text-cyan-400 shrink-0 mt-0.5" />
               <p className="leading-relaxed">
-                <strong className="text-slate-900 dark:text-white font-semibold">Invariant 2:</strong> Fixiq isolates <strong className="text-amber-600 dark:text-amber-400">SUSPECTED</strong> guesses from <strong className="text-emerald-600 dark:text-emerald-400">CONFIRMED</strong> component fixes. Only verified successful repairs contribute to this evidence.
+                <strong className="text-slate-900 dark:text-white font-semibold">Verified Ground-Truth:</strong> Recommendations are derived exclusively from empirical component replacements verified with successful post-repair load tests.
               </p>
             </div>
 

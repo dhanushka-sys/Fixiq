@@ -166,12 +166,12 @@ export default function PatternsPage() {
         ))}
       </div>
 
-      {/* Invariant Educational Tag */}
+      {/* Empirical Evidence Note */}
       <div className="p-4 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/40 text-xs text-slate-700 dark:text-slate-300 flex items-start space-x-3">
         <ShieldCheck className="h-5 w-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
         <div>
-          <strong className="text-slate-900 dark:text-white font-semibold">Mathematical Transparency:</strong>{' '}
-          Every failure pattern is backed by empirical counts of similar cases and verified load test results. Suspected hunches never poison this catalog.
+          <strong className="text-slate-900 dark:text-white font-semibold">Empirical Failure Evidence:</strong>{' '}
+          Each pattern is computed from historical repairs with verified functional test results and confirmed component replacements.
         </div>
       </div>
 
