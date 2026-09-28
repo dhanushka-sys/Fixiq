@@ -55,6 +55,7 @@ interface AiQuickIntakeModalProps {
   onClose: () => void;
   onApplyToWorkbench?: (data: ParsedDiagnosticData) => void;
   initialText?: string;
+  actionLabel?: string;
 }
 
 const SAMPLE_NOTES = [
@@ -77,6 +78,7 @@ export function AiQuickIntakeModal({
   onClose,
   onApplyToWorkbench,
   initialText = '',
+  actionLabel = 'Apply to Workbench',
 }: AiQuickIntakeModalProps) {
   const [notes, setNotes] = useState(initialText);
   const [loading, setLoading] = useState(false);
@@ -401,7 +403,7 @@ export function AiQuickIntakeModal({
               onClick={handleApply}
               className="px-4 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-md shadow-cyan-500/20 transition-all flex items-center space-x-1.5 cursor-pointer active:scale-95"
             >
-              <span>Apply to Workbench</span>
+              <span>{actionLabel}</span>
               <ArrowRight className="h-4 w-4" />
             </button>
           )}

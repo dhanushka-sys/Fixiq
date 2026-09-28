@@ -3,13 +3,18 @@ import { prisma } from '@fixiq/database';
 import { parseDiagnosticNotesSchema } from '@fixiq/validation';
 import { calculateEvidenceConfidence } from './intelligence.algorithms.js';
 import { parseDiagnosticNotes } from './intelligence.parser.js';
+import { resolveOrganizationId } from '../../utils/tenant.js';
 
 export const intelligenceRouter = Router();
 
 // GET /api/patterns - List all empirical failure patterns
-intelligenceRouter.get('/patterns', async (_req: Request, res: Response) => {
+intelligenceRouter.get('/patterns', async (req: Request, res: Response) => {
   try {
+    const orgId = await resolveOrganizationId(req);
     const patterns = await prisma.failurePattern.findMany({
+      where: {
+        OR: [{ organizationId: orgId }, { organizationId: null }],
+      },
       include: {
         component: true,
         symptom: true,
@@ -59,7 +64,10 @@ intelligenceRouter.post('/intelligence/recommend', async (req: Request, res: Res
   try {
     const { deviceModel, symptoms } = req.body;
 
-    const whereClause: any = {};
+    const orgId = await resolveOrganizationId(req);
+    const whereClause: any = {
+      OR: [{ organizationId: orgId }, { organizationId: null }],
+    };
     if (deviceModel) {
       whereClause.deviceModel = {
         OR: [

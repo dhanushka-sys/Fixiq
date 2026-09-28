@@ -1,17 +1,21 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '@fixiq/database';
+import { resolveOrganizationId } from '../../utils/tenant.js';
 
 export const devicesRouter = Router();
 
 // GET /api/devices - List all registered devices and models
-devicesRouter.get('/devices', async (_req: Request, res: Response) => {
+devicesRouter.get('/devices', async (req: Request, res: Response) => {
   try {
+    const orgId = await resolveOrganizationId(req);
     const models = await prisma.deviceModel.findMany({
       include: {
         devices: {
+          where: { organizationId: orgId },
           include: {
             customer: true,
             repairJobs: {
+              where: { organizationId: orgId },
               select: { id: true, status: true },
             },
           },
@@ -37,7 +41,7 @@ devicesRouter.get('/devices', async (_req: Request, res: Response) => {
         boardNumber: m.boardNumber ?? 'Schematic Pending',
         cpuArch: m.deviceType,
         formFactor: m.deviceType.includes('Ultrabook') ? '14" Ultrabook' : '14" Laptop',
-        repairCount: totalRepairs > 0 ? totalRepairs * 14 + 18 : 39,
+        repairCount: totalRepairs,
         topFailureIC: topPattern ? `${topPattern.component.partNumber} (${topPattern.circuitDesignator})` : 'TPS65988 (USB-PD)',
         registeredUnits: m.devices.length,
       };

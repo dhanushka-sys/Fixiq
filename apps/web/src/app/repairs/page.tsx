@@ -346,7 +346,34 @@ export default function RepairsPage() {
       <AiQuickIntakeModal
         isOpen={isAiIntakeOpen}
         onClose={() => setIsAiIntakeOpen(false)}
-        onApplyToWorkbench={() => {
+        actionLabel="Create Ticket & Open Bench"
+        onApplyToWorkbench={async (data) => {
+          try {
+            const res = await fetch('/api/repairs', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                modelName: data.device.modelName,
+                boardNumber: data.device.boardNumber,
+                serialNumber: data.device.serialNumber,
+                symptoms: data.symptoms,
+                measurements: data.measurements,
+                notes: data.summary,
+              }),
+            });
+            if (res.ok) {
+              const resJson = await res.json();
+              if (resJson.success) {
+                const refreshed = await fetch('/api/repairs');
+                const list = await refreshed.json();
+                if (list.success && Array.isArray(list.data)) {
+                  setRepairs(list.data);
+                }
+              }
+            }
+          } catch (err) {
+            console.error('Error creating repair from AI intake:', err);
+          }
           router.push('/workbench');
         }}
       />
