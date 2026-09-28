@@ -19,6 +19,15 @@ export function createApp(): Application {
   app.use(express.json());
 
   // Mount routes
+  app.get('/', (_req, res) => {
+    res.status(200).json({
+      name: 'Fixiq Repair Intelligence API',
+      status: 'healthy',
+      version: '0.1.0',
+      healthEndpoint: '/api/health',
+    });
+  });
+
   app.use('/api', healthRouter);
 
   // Global Error Handler
