@@ -18,6 +18,7 @@ const envSchema = z.object({
   JWT_SECRET: z.string().default('fixiq_super_secret_jwt_key_for_development_purposes_only_32_chars'),
   JWT_EXPIRES_IN: z.string().default('15m'),
   CORS_ORIGIN: z.string().default('http://localhost:3000'),
+  GEMINI_API_KEY: z.string().optional(),
 });
 
 export const env = envSchema.parse(process.env);

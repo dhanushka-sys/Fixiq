@@ -84,3 +84,41 @@ describe('Intelligence Engine: evaluateRepeatFailure', () => {
     expect(result.daysSinceLastRepair).toBe(-1);
   });
 });
+
+describe('AI/NLP Quick-Intake Diagnostic Parser', () => {
+  it('should parse technician notes for Dell Latitude 5420 correctly', async () => {
+    const { parseDiagnosticNotes } = await import('../src/modules/intelligence/intelligence.parser.js');
+    const raw = `Dell Latitude 5420 board LA-K491P came in dead. Won't turn on, drawing 0.000A at 5.08V. Diode reading 0.002 Ω short on main rail. Thermal cam spotted UT2 TPS65988 shorted. Replaced UT2, tested ok, successful power on.`;
+
+    const parsed = await parseDiagnosticNotes(raw);
+
+    expect(parsed.device.brand).toBe('Dell');
+    expect(parsed.device.boardNumber).toBe('LA-K491P');
+    expect(parsed.symptoms).toContain('NO_POWER');
+    expect(parsed.symptoms).toContain('ZERO_VBUS');
+    expect(parsed.symptoms).toContain('SHORT_MAIN_RAIL');
+    expect(parsed.measurements.vbusVoltage).toBe('5.08 V');
+    expect(parsed.measurements.vbusCurrent).toBe('0.000 A');
+    expect(parsed.measurements.isShort).toBe(true);
+    expect(parsed.confirmedComponents.some((c) => c.chip.includes('TPS65988'))).toBe(true);
+    expect(parsed.outcome).toBe('SUCCESSFUL');
+  });
+
+  it('should parse ThinkPad T14 telemetry and thermal hotspot accurately', async () => {
+    const { parseDiagnosticNotes } = await import('../src/modules/intelligence/intelligence.parser.js');
+    const raw = `ThinkPad T14 Gen 2 NM-D351 SN:PF38Z49 no power, stuck at 20V 0.024A. EC not responding. Thermal peak +56.7 C around U112 TPS65988DJ. Replaced chip, restored 20V negotiation.`;
+
+    const parsed = await parseDiagnosticNotes(raw);
+
+    expect(parsed.device.modelName).toBe('ThinkPad T14 Gen 2');
+    expect(parsed.device.boardNumber).toBe('NM-D351');
+    expect(parsed.device.serialNumber).toBe('PF38Z49');
+    expect(parsed.symptoms).toContain('20V_NO_CURRENT');
+    expect(parsed.symptoms).toContain('EC_NOT_RUNNING');
+    expect(parsed.measurements.vbusVoltage).toBe('20 V');
+    expect(parsed.measurements.vbusCurrent).toBe('0.024 A');
+    expect(parsed.measurements.thermalPeak).toBe('+56.7 °C');
+    expect(parsed.outcome).toBe('SUCCESSFUL');
+  });
+});
+

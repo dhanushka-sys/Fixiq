@@ -33,6 +33,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
   const navItems = [
     { title: 'Overview Dashboard', href: '/', category: 'Navigation', icon: BarChart3, desc: 'Live repair operations & intelligence summary' },
     { title: 'Diagnostic Bench', href: '/workbench', category: 'Intelligence', icon: Terminal, desc: 'Live electrical telemetry & Bayesian root-cause calculator' },
+    { title: 'AI Quick-Intake Parser', href: '/workbench', category: 'Intelligence', icon: Sparkles, desc: 'Auto-extract symptoms & voltages from technician notes' },
     { title: 'Repair Jobs', href: '/repairs', category: 'Operations', icon: Wrench, desc: 'Intake tickets, technician assignments, bench tracking' },
     { title: 'Hardware Registry', href: '/devices', category: 'Operations', icon: Laptop, desc: '1,284 motherboards, schematics & architectures' },
     { title: 'Failure Patterns', href: '/patterns', category: 'Intelligence', icon: Layers, desc: '38 verified IC failure topologies & symptoms' },

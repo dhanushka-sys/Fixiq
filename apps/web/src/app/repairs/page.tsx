@@ -15,7 +15,10 @@ import {
   Laptop,
   User,
   X,
+  Sparkles,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { AiQuickIntakeModal } from '@/components/ai-quick-intake-modal';
 
 interface RepairItem {
   id: string;
@@ -37,6 +40,8 @@ export default function RepairsPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [isAiIntakeOpen, setIsAiIntakeOpen] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     let active = true;
@@ -133,14 +138,23 @@ export default function RepairsPage() {
           </div>
         </div>
 
-        {/* New Ticket CTA */}
-        <Link
-          href="/workbench"
-          className="px-4 py-2 text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white dark:bg-cyan-500 dark:hover:bg-cyan-400 dark:text-slate-950 rounded-xl shadow-sm hover:shadow-cyan-500/20 transition-all flex items-center justify-center space-x-2 self-start sm:self-auto active:scale-95"
-        >
-          <Plus className="h-4 w-4" />
-          <span>New Repair Intake</span>
-        </Link>
+        {/* Ticket Intake CTAs */}
+        <div className="flex items-center space-x-2 self-start sm:self-auto">
+          <button
+            onClick={() => setIsAiIntakeOpen(true)}
+            className="px-3.5 py-2 text-xs font-bold bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl shadow-xs transition-all flex items-center justify-center space-x-1.5 active:scale-95 cursor-pointer"
+          >
+            <Sparkles className="h-4 w-4" />
+            <span>AI Note Intake</span>
+          </button>
+          <Link
+            href="/workbench"
+            className="px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-750 rounded-xl shadow-xs transition-all flex items-center justify-center space-x-1.5 active:scale-95"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Manual Intake</span>
+          </Link>
+        </div>
       </div>
 
       {/* Filter Tabs and Search Bar */}
@@ -327,6 +341,15 @@ export default function RepairsPage() {
           </table>
         </div>
       </div>
+
+      {/* AI Quick Intake Modal */}
+      <AiQuickIntakeModal
+        isOpen={isAiIntakeOpen}
+        onClose={() => setIsAiIntakeOpen(false)}
+        onApplyToWorkbench={() => {
+          router.push('/workbench');
+        }}
+      />
     </div>
   );
 }

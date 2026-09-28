@@ -146,6 +146,12 @@ export const intelligenceQuerySchema = z.object({
   symptomIds: z.array(z.string().uuid()).default([]),
 });
 
+// Diagnostic Note Parser Schema
+export const parseDiagnosticNotesSchema = z.object({
+  rawNotes: z.string().min(3, 'Diagnostic text must contain at least 3 characters'),
+  modelContext: z.string().optional(),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterUserInput = z.infer<typeof registerUserSchema>;
 export type CreateCustomerInput = z.infer<typeof createCustomerSchema>;
@@ -158,3 +164,4 @@ export type RecordRepairActionInput = z.infer<typeof recordRepairActionSchema>;
 export type RecordRepairTestInput = z.infer<typeof recordRepairTestSchema>;
 export type CreateComponentInput = z.infer<typeof createComponentSchema>;
 export type CreateSymptomInput = z.infer<typeof createSymptomSchema>;
+export type ParseDiagnosticNotesInput = z.infer<typeof parseDiagnosticNotesSchema>;

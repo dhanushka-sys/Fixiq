@@ -19,6 +19,7 @@ import {
   BarChart3,
   Network,
 } from 'lucide-react';
+import { AiQuickIntakeModal, ParsedDiagnosticData } from '@/components/ai-quick-intake-modal';
 
 interface DevicePreset {
   id: string;
@@ -201,6 +202,47 @@ export default function WorkbenchPage() {
   const [ruledOutComponents, setRuledOutComponents] = useState<string[]>([]);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState<number>(3);
+  const [isAiIntakeOpen, setIsAiIntakeOpen] = useState(false);
+
+  const handleApplyAiIntake = (data: ParsedDiagnosticData) => {
+    // 1. Check if device matches any preset
+    const matchedPreset = DEVICE_PRESETS.find(
+      (p) =>
+        (data.device.boardNumber && p.boardNumber.toLowerCase().includes(data.device.boardNumber.toLowerCase())) ||
+        (data.device.modelName && p.name.toLowerCase().includes(data.device.modelName.toLowerCase())) ||
+        (data.device.brand && p.name.toLowerCase().includes(data.device.brand.toLowerCase()))
+    );
+
+    if (matchedPreset) {
+      setSelectedDevice({
+        ...matchedPreset,
+        serialNumber: data.device.serialNumber || matchedPreset.serialNumber,
+        measurements: {
+          ...matchedPreset.measurements,
+          vbusVoltage: data.measurements.vbusVoltage || matchedPreset.measurements.vbusVoltage,
+          vbusCurrent: data.measurements.vbusCurrent || matchedPreset.measurements.vbusCurrent,
+          diodeReading: data.measurements.diodeReading || matchedPreset.measurements.diodeReading,
+          isShort: typeof data.measurements.isShort === 'boolean' ? data.measurements.isShort : matchedPreset.measurements.isShort,
+          thermalPeak: data.measurements.thermalPeak || matchedPreset.measurements.thermalPeak,
+          hotspotPart: data.measurements.hotspotPart || matchedPreset.measurements.hotspotPart,
+        },
+      });
+    }
+
+    if (data.symptoms.length > 0) {
+      setActiveSymptoms(data.symptoms);
+    }
+
+    if (data.confirmedComponents.length > 0) {
+      setConfirmedComponents(data.confirmedComponents.map((c) => `${c.chip} (${c.designator || 'IC'})`));
+      setCurrentStep(5);
+    } else {
+      setCurrentStep(3);
+    }
+
+    setActionNotice(`AI Diagnostic Intake Applied: ${data.summary}`);
+    setTimeout(() => setActionNotice(null), 6000);
+  };
 
   const handleDeviceChange = (preset: DevicePreset) => {
     setSelectedDevice(preset);
@@ -250,7 +292,7 @@ export default function WorkbenchPage() {
       {/* Page Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
         <div>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="p-1.5 rounded-lg bg-cyan-100 dark:bg-cyan-950/80 text-cyan-600 dark:text-cyan-400">
               <Terminal className="h-4 w-4" />
             </span>
@@ -260,6 +302,13 @@ export default function WorkbenchPage() {
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
               Active Ticket #FIX-1092
             </span>
+            <button
+              onClick={() => setIsAiIntakeOpen(true)}
+              className="px-2.5 py-1 text-xs font-bold rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-xs flex items-center space-x-1.5 transition-all active:scale-95 cursor-pointer"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>AI Quick Intake</span>
+            </button>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
             Real-time board diagnosis. Multimeter &amp; thermal telemetry updates Bayesian failure probabilities dynamically.
@@ -620,6 +669,13 @@ export default function WorkbenchPage() {
           </div>
         </div>
       </div>
+
+      {/* AI Quick-Intake Modal */}
+      <AiQuickIntakeModal
+        isOpen={isAiIntakeOpen}
+        onClose={() => setIsAiIntakeOpen(false)}
+        onApplyToWorkbench={handleApplyAiIntake}
+      />
     </div>
   );
 }

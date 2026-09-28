@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '@fixiq/database';
+import { parseDiagnosticNotesSchema } from '@fixiq/validation';
 import { calculateEvidenceConfidence } from './intelligence.algorithms.js';
+import { parseDiagnosticNotes } from './intelligence.parser.js';
 
 export const intelligenceRouter = Router();
 
@@ -108,3 +110,33 @@ intelligenceRouter.post('/intelligence/recommend', async (req: Request, res: Res
     res.status(500).json({ success: false, error: 'Failed to compute failure recommendations' });
   }
 });
+
+// POST /api/intelligence/parse-notes - AI/NLP Quick-Intake Diagnostic Parser
+intelligenceRouter.post('/intelligence/parse-notes', async (req: Request, res: Response) => {
+  try {
+    const validated = parseDiagnosticNotesSchema.safeParse(req.body);
+    if (!validated.success) {
+      res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: validated.error.format(),
+      });
+      return;
+    }
+
+    const { rawNotes, modelContext } = validated.data;
+    const parsed = await parseDiagnosticNotes(rawNotes, modelContext);
+
+    res.status(200).json({
+      success: true,
+      data: parsed,
+    });
+  } catch (error) {
+    console.error('Error parsing diagnostic notes:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to parse diagnostic notes',
+    });
+  }
+});
+
