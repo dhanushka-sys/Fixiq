@@ -17,7 +17,10 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "db:generate": "npm run generate --workspace=@fixiq/database",
     "db:migrate": "npm run migrate --workspace=@fixiq/database",
-    "db:seed": "npm run seed --workspace=@fixiq/database"
+    "db:push": "npx prisma db push --schema packages/database/prisma/schema.prisma",
+    "db:seed": "npm run seed --workspace=@fixiq/database",
+    "db:start": "powershell -Command \"pg_ctl -D .pgdata -l .pgdata/server.log -o '-p 5433' start\"",
+    "db:stop": "powershell -Command \"pg_ctl -D .pgdata stop\""
   },
   "keywords": [
     "repair-intelligence",

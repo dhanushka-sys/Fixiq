@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Laptop,
@@ -14,70 +14,50 @@ import {
   Filter,
 } from 'lucide-react';
 
-const DEVICES_DATA = [
-  {
-    model: 'Dell Latitude 5420',
-    brand: 'Dell',
-    boardNumber: 'LA-K491P',
-    cpuArch: 'Intel Tiger Lake 11th Gen',
-    formFactor: '14" Laptop',
-    repairCount: 84,
-    topFailureIC: 'TPS65988 (USB-PD)',
-  },
-  {
-    model: 'ThinkPad T14 Gen 2',
-    brand: 'Lenovo',
-    boardNumber: 'NM-D351',
-    cpuArch: 'AMD Ryzen Pro 5000 Series',
-    formFactor: '14" Laptop',
-    repairCount: 62,
-    topFailureIC: 'TPS65988DJ (Thunderbolt)',
-  },
-  {
-    model: 'MacBook Pro 16" (A2141)',
-    brand: 'Apple',
-    boardNumber: '820-01700-A',
-    cpuArch: 'Intel Core i9 + T2 Security',
-    formFactor: '16" Laptop',
-    repairCount: 91,
-    topFailureIC: 'CD3217B12 (Type-C PD)',
-  },
-  {
-    model: 'HP EliteBook 840 G7',
-    brand: 'HP',
-    boardNumber: '6050A3136201',
-    cpuArch: 'Intel Comet Lake 10th Gen',
-    formFactor: '14" Ultrabook',
-    repairCount: 45,
-    topFailureIC: 'ISL9538H (Charger)',
-  },
-  {
-    model: 'MacBook Air M1 (A2337)',
-    brand: 'Apple',
-    boardNumber: '820-02016',
-    cpuArch: 'Apple Silicon M1',
-    formFactor: '13.3" Laptop',
-    repairCount: 78,
-    topFailureIC: '3V3_G3H Rail Short',
-  },
-  {
-    model: 'ThinkPad X1 Carbon Gen 9',
-    brand: 'Lenovo',
-    boardNumber: 'NM-D141',
-    cpuArch: 'Intel Tiger Lake vPro',
-    formFactor: '14" Laptop',
-    repairCount: 39,
-    topFailureIC: 'TPS65994AD (Type-C)',
-  },
-];
+interface DeviceModelItem {
+  id: string;
+  model: string;
+  brand: string;
+  boardNumber: string;
+  cpuArch: string;
+  formFactor: string;
+  repairCount: number;
+  topFailureIC: string;
+  registeredUnits: number;
+}
 
 export default function DevicesPage() {
+  const [devices, setDevices] = useState<DeviceModelItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedBrand, setSelectedBrand] = useState('ALL');
 
-  const brands = ['ALL', 'Dell', 'Lenovo', 'Apple', 'HP'];
+  useEffect(() => {
+    let active = true;
+    async function fetchDevices() {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/devices');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (active && json.success && Array.isArray(json.data)) {
+          setDevices(json.data);
+        }
+      } catch (err) {
+        console.error('Failed to load devices from database:', err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    fetchDevices();
+    return () => {
+      active = false;
+    };
+  }, []);
 
-  const filtered = DEVICES_DATA.filter((d) => {
+  const brands = ['ALL', ...Array.from(new Set(devices.map((d) => d.brand)))];
+
+  const filtered = devices.filter((d) => {
     const matchesSearch =
       search === '' ||
       d.model.toLowerCase().includes(search.toLowerCase()) ||
@@ -105,9 +85,15 @@ export default function DevicesPage() {
               <Laptop className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                Hardware Registry
-              </h1>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                  Hardware Registry
+                </h1>
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 dark:bg-blue-950/70 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
+                  PostgreSQL Live ({devices.length})
+                </span>
+              </div>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
                 Motherboard schematic database, architecture profiles, and historical failure linkage.
               </p>
@@ -164,8 +150,21 @@ export default function DevicesPage() {
         </div>
       </div>
 
+      {/* Loading Skeleton */}
+      {loading && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+          {[1, 2, 3].map((n) => (
+            <div key={n} className="p-5 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 animate-pulse space-y-3">
+              <div className="h-3 w-16 bg-slate-200 dark:bg-slate-800 rounded" />
+              <div className="h-5 w-40 bg-slate-200 dark:bg-slate-800 rounded" />
+              <div className="h-16 bg-slate-100 dark:bg-slate-800/40 rounded-xl" />
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Empty State */}
-      {filtered.length === 0 && (
+      {!loading && filtered.length === 0 && (
         <div className="p-8 sm:p-12 text-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 bg-white/50 dark:bg-slate-900/30 space-y-3">
           <Laptop className="h-8 w-8 mx-auto text-slate-400 opacity-50" />
           <h3 className="text-sm font-bold text-slate-900 dark:text-white">No devices found</h3>

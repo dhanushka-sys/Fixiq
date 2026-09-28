@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Users,
@@ -14,56 +14,51 @@ import {
   Building,
 } from 'lucide-react';
 
-const CUSTOMERS_DATA = [
-  {
-    id: 'CUST-001',
-    name: 'Vertex Corp (Enterprise IT)',
-    contactPerson: 'David Miller',
-    email: 'dmiller@vertexcorp.com',
-    phone: '+1 (555) 392-1049',
-    devicesCount: 38,
-    activeRepairs: 3,
-    status: 'ENTERPRISE',
-  },
-  {
-    id: 'CUST-002',
-    name: 'Apex Logistics LLC',
-    contactPerson: 'Elena Rostova',
-    email: 'elena@apexlogistics.io',
-    phone: '+1 (555) 782-9921',
-    devicesCount: 16,
-    activeRepairs: 1,
-    status: 'BUSINESS',
-  },
-  {
-    id: 'CUST-003',
-    name: 'Dr. Silva Medical Clinic',
-    contactPerson: 'Dr. Marcus Silva',
-    email: 'marcus@silvaclinic.org',
-    phone: '+1 (555) 881-2041',
-    devicesCount: 5,
-    activeRepairs: 1,
-    status: 'INDIVIDUAL',
-  },
-  {
-    id: 'CUST-004',
-    name: 'TechCare Warranty Services',
-    contactPerson: 'Sarah Jenkins',
-    email: 'claims@techcare.net',
-    phone: '+1 (555) 431-8902',
-    devicesCount: 84,
-    activeRepairs: 4,
-    status: 'PARTNER',
-  },
-];
+interface CustomerItem {
+  id: string;
+  dbId: string;
+  name: string;
+  contactPerson: string;
+  email: string;
+  phone: string;
+  devicesCount: number;
+  activeRepairs: number;
+  status: string;
+  address?: string | null;
+}
 
 export default function CustomersPage() {
+  const [customers, setCustomers] = useState<CustomerItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
 
+  useEffect(() => {
+    let active = true;
+    async function fetchCustomers() {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/customers');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (active && json.success && Array.isArray(json.data)) {
+          setCustomers(json.data);
+        }
+      } catch (err) {
+        console.error('Failed to load customers from database:', err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    fetchCustomers();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const statuses = ['ALL', 'ENTERPRISE', 'BUSINESS', 'PARTNER', 'INDIVIDUAL'];
 
-  const filtered = CUSTOMERS_DATA.filter((c) => {
+  const filtered = customers.filter((c) => {
     const matchesSearch =
       search === '' ||
       c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -90,9 +85,15 @@ export default function CustomersPage() {
               <Users className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                Customers &amp; Accounts
-              </h1>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                  Customers &amp; Accounts
+                </h1>
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  PostgreSQL Live ({customers.length})
+                </span>
+              </div>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
                 Client directory, warranty service contracts, and fleet repair histories.
               </p>
@@ -147,8 +148,21 @@ export default function CustomersPage() {
         </div>
       </div>
 
+      {/* Loading Skeleton */}
+      {loading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+          {[1, 2].map((n) => (
+            <div key={n} className="p-6 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 animate-pulse space-y-3">
+              <div className="h-4 w-28 bg-slate-200 dark:bg-slate-800 rounded" />
+              <div className="h-6 w-48 bg-slate-200 dark:bg-slate-800 rounded" />
+              <div className="h-12 bg-slate-100 dark:bg-slate-800/40 rounded-xl" />
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Empty State */}
-      {filtered.length === 0 && (
+      {!loading && filtered.length === 0 && (
         <div className="p-8 sm:p-12 text-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 bg-white/50 dark:bg-slate-900/30 space-y-3">
           <Users className="h-8 w-8 mx-auto text-slate-400 opacity-50" />
           <h3 className="text-sm font-bold text-slate-900 dark:text-white">No accounts found</h3>

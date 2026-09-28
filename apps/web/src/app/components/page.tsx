@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Cpu,
@@ -13,62 +13,46 @@ import {
   X,
 } from 'lucide-react';
 
-const COMPONENTS_DATA = [
-  {
-    partNumber: 'TPS65988',
-    category: 'USB_PD_CONTROLLER',
-    manufacturer: 'Texas Instruments',
-    packageType: 'QFN-56 (7x7mm)',
-    inStock: 18,
-    typicalDesignators: ['UT2', 'U112', 'UT1'],
-    compatibleBoards: ['Dell LA-K491P', 'Lenovo NM-D351'],
-    unitCost: '$12.50',
-  },
-  {
-    partNumber: 'CD3217B12',
-    category: 'USB_PD_CONTROLLER',
-    manufacturer: 'Texas Instruments / Apple',
-    packageType: 'BGA-49',
-    inStock: 12,
-    typicalDesignators: ['U3100', 'U3200', 'UB300', 'UB400'],
-    compatibleBoards: ['Apple 820-01700', 'Apple 820-02016'],
-    unitCost: '$18.00',
-  },
-  {
-    partNumber: 'BQ24780S',
-    category: 'CHARGING_IC',
-    manufacturer: 'Texas Instruments',
-    packageType: 'QFN-28 (4x4mm)',
-    inStock: 25,
-    typicalDesignators: ['PU301', 'U7100'],
-    compatibleBoards: ['Lenovo NM-D351', 'HP 6050A3136201'],
-    unitCost: '$7.80',
-  },
-  {
-    partNumber: 'ISL95855',
-    category: 'PWM_VRM_CONTROLLER',
-    manufacturer: 'Renesas / Intersil',
-    packageType: 'QFN-48',
-    inStock: 7,
-    typicalDesignators: ['PU401', 'U7200'],
-    compatibleBoards: ['Dell LA-F611P', 'HP EliteBook 840 G5'],
-    unitCost: '$14.20',
-  },
-  {
-    partNumber: 'IT8227E-128',
-    category: 'EMBEDDED_CONTROLLER',
-    manufacturer: 'ITE Tech',
-    packageType: 'LQFP-128',
-    inStock: 4,
-    typicalDesignators: ['UE1', 'U14'],
-    compatibleBoards: ['Lenovo NM-D351', 'IdeaPad 5'],
-    unitCost: '$9.50',
-  },
-];
+interface ComponentItem {
+  id: string;
+  partNumber: string;
+  category: string;
+  manufacturer: string;
+  packageType: string;
+  inStock: number;
+  typicalDesignators: string[];
+  compatibleBoards: string[];
+  unitCost: string;
+}
 
 export default function ComponentsPage() {
+  const [components, setComponents] = useState<ComponentItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
+
+  useEffect(() => {
+    let active = true;
+    async function fetchComponents() {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/components');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (active && json.success && Array.isArray(json.data)) {
+          setComponents(json.data);
+        }
+      } catch (err) {
+        console.error('Failed to load components from database:', err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    fetchComponents();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const categories = [
     { id: 'ALL', label: 'All ICs' },
@@ -78,7 +62,7 @@ export default function ComponentsPage() {
     { id: 'EMBEDDED_CONTROLLER', label: 'EC / SuperIO' },
   ];
 
-  const filtered = COMPONENTS_DATA.filter((c) => {
+  const filtered = components.filter((c) => {
     const matchesSearch =
       search === '' ||
       c.partNumber.toLowerCase().includes(search.toLowerCase()) ||
@@ -107,9 +91,15 @@ export default function ComponentsPage() {
               <Cpu className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                Component Inventory
-              </h1>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                  Component Inventory
+                </h1>
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-cyan-50 dark:bg-cyan-950/70 text-cyan-700 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-800">
+                  <span className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-pulse" />
+                  PostgreSQL Live ({components.length})
+                </span>
+              </div>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
                 Micro-soldering IC inventory, package footprints, circuit designators, and sourcing.
               </p>
@@ -166,8 +156,21 @@ export default function ComponentsPage() {
         </div>
       </div>
 
+      {/* Loading Skeleton */}
+      {loading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+          {[1, 2, 3].map((n) => (
+            <div key={n} className="p-5 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 animate-pulse space-y-3">
+              <div className="h-4 w-28 bg-slate-200 dark:bg-slate-800 rounded" />
+              <div className="h-5 w-40 bg-slate-200 dark:bg-slate-800 rounded" />
+              <div className="h-16 bg-slate-100 dark:bg-slate-800/40 rounded-xl" />
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Empty State */}
-      {filtered.length === 0 && (
+      {!loading && filtered.length === 0 && (
         <div className="p-8 sm:p-12 text-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 bg-white/50 dark:bg-slate-900/30 space-y-3">
           <Cpu className="h-8 w-8 mx-auto text-slate-400 opacity-50" />
           <h3 className="text-sm font-bold text-slate-900 dark:text-white">No components found</h3>

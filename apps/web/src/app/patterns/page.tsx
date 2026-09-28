@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Layers,
@@ -29,81 +29,38 @@ interface PatternEntry {
   confidence: 'HIGH' | 'VERY_HIGH' | 'MODERATE';
 }
 
-const PATTERNS_DATA: PatternEntry[] = [
-  {
-    id: 'PAT-001',
-    chip: 'TPS65988',
-    category: 'USB_PD_CONTROLLER',
-    manufacturer: 'Texas Instruments',
-    models: ['Dell Latitude 5420', 'Dell Latitude 5520', 'Dell Precision 3560'],
-    symptom: '5V VBUS 0.00A Stuck / Won’t Negotiate 20V',
-    faultPinout: 'Pin 14 (VBUS) shorted to Pin 19 (CC1)',
-    totalCases: 47,
-    confirmedCases: 36,
-    verifiedSuccessRate: 94.7,
-    confidence: 'HIGH',
-  },
-  {
-    id: 'PAT-002',
-    chip: 'CD3217B12',
-    category: 'USB_PD_CONTROLLER',
-    manufacturer: 'Texas Instruments / Apple',
-    models: ['MacBook Pro 16" (A2141)', 'MacBook Air (A2179)'],
-    symptom: 'Stuck at 5V / 0.01A / DFU Mode',
-    faultPinout: 'PP1V5_UPC_LDO rail impedance short to Ground',
-    totalCases: 51,
-    confirmedCases: 45,
-    verifiedSuccessRate: 96.0,
-    confidence: 'VERY_HIGH',
-  },
-  {
-    id: 'PAT-003',
-    chip: 'BQ24780S',
-    category: 'BATTERY_CHARGER',
-    manufacturer: 'Texas Instruments',
-    models: ['ThinkPad T14 Gen 2', 'Lenovo ThinkPad E14', 'HP ProBook 450 G8'],
-    symptom: 'Battery Not Detected / No Charging / ACDRV 0V',
-    faultPinout: 'Pin 4 (ACDRV) output transistor breakdown',
-    totalCases: 32,
-    confirmedCases: 22,
-    verifiedSuccessRate: 88.0,
-    confidence: 'HIGH',
-  },
-  {
-    id: 'PAT-004',
-    chip: 'ISL95855',
-    category: 'PWM_VRM_CONTROLLER',
-    manufacturer: 'Renesas / Intersil',
-    models: ['Dell Latitude 7490', 'ThinkPad T480', 'HP EliteBook 840 G5'],
-    symptom: 'No CPU VCC_CORE Power / Power Loop',
-    faultPinout: 'VCCP filtering capacitor breakdown pulling down VRM_EN',
-    totalCases: 29,
-    confirmedCases: 19,
-    verifiedSuccessRate: 86.4,
-    confidence: 'MODERATE',
-  },
-  {
-    id: 'PAT-005',
-    chip: 'IT8227E-128',
-    category: 'EMBEDDED_CONTROLLER',
-    manufacturer: 'ITE Tech',
-    models: ['ThinkPad T14 Gen 2 (AMD)', 'IdeaPad 5 15ARE05'],
-    symptom: 'No Power Sequence Initiation / Amber LED Blink',
-    faultPinout: 'VCC_RTC pin voltage drop to 0.8V',
-    totalCases: 24,
-    confirmedCases: 15,
-    verifiedSuccessRate: 87.5,
-    confidence: 'MODERATE',
-  },
-];
-
 export default function PatternsPage() {
+  const [patterns, setPatterns] = useState<PatternEntry[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedConfidence, setSelectedConfidence] = useState<string>('ALL');
 
+  useEffect(() => {
+    let active = true;
+    async function fetchPatterns() {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/patterns');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (active && json.success && Array.isArray(json.data)) {
+          setPatterns(json.data);
+        }
+      } catch (err) {
+        console.error('Failed to load patterns from database:', err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    fetchPatterns();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const confidences = ['ALL', 'VERY_HIGH', 'HIGH', 'MODERATE'];
 
-  const filteredEntries = PATTERNS_DATA.filter((entry) => {
+  const filteredEntries = patterns.filter((entry) => {
     const matchesSearch =
       searchQuery === '' ||
       entry.chip.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -132,9 +89,15 @@ export default function PatternsPage() {
               <Layers className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                Failure Patterns
-              </h1>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                  Failure Patterns
+                </h1>
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                  <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                  PostgreSQL Live ({patterns.length})
+                </span>
+              </div>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
                 Empirically verified failure signatures indexed from closed-loop repair data.
               </p>
@@ -202,8 +165,24 @@ export default function PatternsPage() {
         </div>
       </div>
 
+      {/* Loading Skeleton */}
+      {loading && (
+        <div className="space-y-4">
+          {[1, 2, 3].map((n) => (
+            <div key={n} className="p-5 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 animate-pulse space-y-3">
+              <div className="flex justify-between">
+                <div className="h-4 w-32 bg-slate-200 dark:bg-slate-800 rounded" />
+                <div className="h-4 w-20 bg-slate-200 dark:bg-slate-800 rounded-full" />
+              </div>
+              <div className="h-4 w-60 bg-slate-200 dark:bg-slate-800 rounded" />
+              <div className="h-10 bg-slate-100 dark:bg-slate-800/40 rounded-xl" />
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Empty State */}
-      {filteredEntries.length === 0 && (
+      {!loading && filteredEntries.length === 0 && (
         <div className="p-8 sm:p-12 text-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 bg-white/50 dark:bg-slate-900/30 space-y-3">
           <Layers className="h-8 w-8 mx-auto text-slate-400 opacity-50" />
           <h3 className="text-sm font-bold text-slate-900 dark:text-white">No patterns found</h3>

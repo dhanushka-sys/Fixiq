@@ -36,6 +36,8 @@ pnpm-debug.log*
 *.db
 docker/data/
 postgres-data/
+.pgdata/
+
 
 # IDE & OS
 .DS_Store

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Wrench,
@@ -17,83 +17,62 @@ import {
   X,
 } from 'lucide-react';
 
-const REPAIRS_LIST = [
-  {
-    id: 'FIX-1092',
-    device: 'Dell Latitude 5420',
-    board: 'LA-K491P',
-    serial: '4F92KL3',
-    customer: 'Vertex Corp',
-    technician: 'Dhanushka M.',
-    status: 'DIAGNOSIS',
-    priority: 'HIGH',
-    symptom: '5V VBUS 0.00A / Won’t Turn On',
-    intakeDate: 'Today, 09:30 AM',
-  },
-  {
-    id: 'FIX-1091',
-    device: 'ThinkPad T14 Gen 2',
-    board: 'NM-D351',
-    serial: 'PF38Z49',
-    customer: 'Apex Logistics',
-    technician: 'Kamal P.',
-    status: 'REPAIRING',
-    priority: 'NORMAL',
-    symptom: 'Stuck at 20V / 0.02A (U112 Short to GND)',
-    intakeDate: 'Today, 08:15 AM',
-  },
-  {
-    id: 'FIX-1090',
-    device: 'MacBook Pro 16" (A2141)',
-    board: '820-01700-A',
-    serial: 'C02DP0XXMD6M',
-    customer: 'Dr. Silva',
-    technician: 'Dhanushka M.',
-    status: 'TESTING',
-    priority: 'RUSH',
-    symptom: 'CD3217 Replaced — Running 20V Load Verification',
-    intakeDate: 'Yesterday',
-  },
-  {
-    id: 'FIX-1089',
-    device: 'HP EliteBook 840 G7',
-    board: '6050A3136201',
-    serial: '5CG0391K8L',
-    customer: 'TechCare Ltd',
-    technician: 'Nimal S.',
-    status: 'AWAITING_PARTS',
-    priority: 'NORMAL',
-    symptom: 'ISL9538H Charger IC shorted on phase inductor',
-    intakeDate: 'Yesterday',
-  },
-  {
-    id: 'FIX-1088',
-    device: 'MacBook Air M1 (A2337)',
-    board: '820-02016',
-    serial: 'C02G90XXQ6L4',
-    customer: 'Kasun Bandara',
-    technician: 'Dhanushka M.',
-    status: 'COMPLETED',
-    priority: 'NORMAL',
-    symptom: 'Liquid damage on 3V3_G3H rail / Capacitor replaced',
-    intakeDate: 'Sep 26',
-  },
-];
+interface RepairItem {
+  id: string;
+  rawId?: string;
+  device: string;
+  board: string;
+  serial: string;
+  customer: string;
+  technician: string;
+  status: string;
+  priority: string;
+  symptom: string;
+  intakeDate: string;
+}
 
 export default function RepairsPage() {
+  const [repairs, setRepairs] = useState<RepairItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
 
+  useEffect(() => {
+    let active = true;
+    async function fetchRepairs() {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/repairs');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (active && json.success && Array.isArray(json.data)) {
+          setRepairs(json.data);
+          setError(null);
+        }
+      } catch (err) {
+        console.error('Failed to fetch repairs from database:', err);
+        if (active) setError('Database connection unavailable');
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    fetchRepairs();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const filterOptions = [
-    { id: 'ALL', label: 'All Jobs', count: REPAIRS_LIST.length },
-    { id: 'DIAGNOSIS', label: 'Diagnosis', count: REPAIRS_LIST.filter(r => r.status === 'DIAGNOSIS').length },
-    { id: 'REPAIRING', label: 'Repairing', count: REPAIRS_LIST.filter(r => r.status === 'REPAIRING').length },
-    { id: 'TESTING', label: 'Testing', count: REPAIRS_LIST.filter(r => r.status === 'TESTING').length },
-    { id: 'AWAITING_PARTS', label: 'Parts', count: REPAIRS_LIST.filter(r => r.status === 'AWAITING_PARTS').length },
-    { id: 'COMPLETED', label: 'Completed', count: REPAIRS_LIST.filter(r => r.status === 'COMPLETED').length },
+    { id: 'ALL', label: 'All Jobs', count: repairs.length },
+    { id: 'DIAGNOSIS', label: 'Diagnosis', count: repairs.filter((r) => r.status === 'DIAGNOSIS').length },
+    { id: 'REPAIRING', label: 'Repairing', count: repairs.filter((r) => r.status === 'REPAIRING').length },
+    { id: 'TESTING', label: 'Testing', count: repairs.filter((r) => r.status === 'TESTING').length },
+    { id: 'AWAITING_PARTS', label: 'Parts', count: repairs.filter((r) => r.status === 'AWAITING_PARTS').length },
+    { id: 'COMPLETED', label: 'Completed', count: repairs.filter((r) => r.status === 'COMPLETED').length },
   ];
 
-  const filtered = REPAIRS_LIST.filter((r) => {
+  const filtered = repairs.filter((r) => {
     const matchSearch =
       search === '' ||
       r.id.toLowerCase().includes(search.toLowerCase()) ||
@@ -138,9 +117,15 @@ export default function RepairsPage() {
               <Wrench className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                Repair Jobs
-              </h1>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                  Repair Jobs
+                </h1>
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  PostgreSQL Live ({repairs.length})
+                </span>
+              </div>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
                 Active workbench tickets, technician assignments, and verification state transitions.
               </p>
@@ -205,8 +190,24 @@ export default function RepairsPage() {
         </div>
       </div>
 
+      {/* Loading Skeleton */}
+      {loading && (
+        <div className="space-y-3">
+          {[1, 2, 3].map((n) => (
+            <div key={n} className="p-4 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 animate-pulse space-y-2.5">
+              <div className="flex justify-between items-center">
+                <div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded" />
+                <div className="h-4 w-20 bg-slate-200 dark:bg-slate-800 rounded-full" />
+              </div>
+              <div className="h-4 w-48 bg-slate-200 dark:bg-slate-800 rounded" />
+              <div className="h-3 w-64 bg-slate-100 dark:bg-slate-800/60 rounded" />
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Empty State */}
-      {filtered.length === 0 && (
+      {!loading && filtered.length === 0 && (
         <div className="p-8 sm:p-12 text-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 bg-white/50 dark:bg-slate-900/30 space-y-3">
           <Wrench className="h-8 w-8 mx-auto text-slate-400 opacity-50" />
           <h3 className="text-sm font-bold text-slate-900 dark:text-white">No matching repair jobs</h3>
