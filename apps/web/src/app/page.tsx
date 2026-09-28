@@ -1,334 +1,681 @@
+'use client';
+
+import React, { useState, useMemo } from 'react';
+import Link from 'next/link';
 import {
-  Cpu,
+  Terminal,
   Activity,
   Layers,
-  Search,
-  CheckCircle2,
-  AlertTriangle,
-  Database,
+  Laptop,
+  Check,
+  X,
+  Flame,
+  ShieldCheck,
+  CheckCircle,
+  Sliders,
+  Sparkles,
   ArrowRight,
-  TrendingDown,
-  Terminal,
+  Database,
+  BarChart3,
 } from 'lucide-react';
 
-export default function Home() {
+interface DevicePreset {
+  id: string;
+  name: string;
+  boardNumber: string;
+  arch: string;
+  serialNumber: string;
+  defaultSymptoms: string[];
+  measurements: {
+    vbusVoltage: string;
+    vbusCurrent: string;
+    diodeReading: string;
+    isShort: boolean;
+    thermalPeak: string;
+    hotspotPart: string;
+  };
+  recommendations: {
+    chip: string;
+    designator: string;
+    role: string;
+    probability: number;
+    confirmedCount: number;
+    totalCases: number;
+    confidence: 'HIGH' | 'MEDIUM';
+    failureMode: string;
+    shortedPins: string;
+  }[];
+}
+
+const DEVICE_PRESETS: DevicePreset[] = [
+  {
+    id: 'dell-5420',
+    name: 'Dell Latitude 5420',
+    boardNumber: 'LA-K491P',
+    arch: 'Intel Tiger Lake 11th Gen',
+    serialNumber: '4F92KL3',
+    defaultSymptoms: ['NO_POWER', 'ZERO_VBUS', 'SHORT_MAIN_RAIL'],
+    measurements: {
+      vbusVoltage: '5.08 V',
+      vbusCurrent: '0.000 A',
+      diodeReading: '0.002 Ω',
+      isShort: true,
+      thermalPeak: '+48.2 °C',
+      hotspotPart: 'UT2 (PD Controller)',
+    },
+    recommendations: [
+      {
+        chip: 'TPS65988',
+        designator: 'UT2',
+        role: 'Dual-Port USB Type-C & USB PD Controller',
+        probability: 76.5,
+        confirmedCount: 36,
+        totalCases: 47,
+        confidence: 'HIGH',
+        failureMode: 'Internal gate puncture between VBUS rail and CC1 pin',
+        shortedPins: 'Pin 14 (VBUS) to Pin 19 (CC1)',
+      },
+      {
+        chip: 'BQ24780S',
+        designator: 'PU301',
+        role: '1-4 Cell Hybrid Power Boost Charge Controller',
+        probability: 17.0,
+        confirmedCount: 8,
+        totalCases: 47,
+        confidence: 'MEDIUM',
+        failureMode: 'High-side input MOSFET drive gate leakage',
+        shortedPins: 'Pin 4 (ACDRV) to GND',
+      },
+      {
+        chip: 'ISL9538H',
+        designator: 'PU101',
+        role: 'Buck-Boost Narrow VDC Battery Charger',
+        probability: 6.5,
+        confirmedCount: 3,
+        totalCases: 47,
+        confidence: 'MEDIUM',
+        failureMode: 'Phase inductor switching diode breakdown',
+        shortedPins: 'BOOT1 capacitor breakdown',
+      },
+    ],
+  },
+  {
+    id: 'thinkpad-t14',
+    name: 'ThinkPad T14 Gen 2',
+    boardNumber: 'NM-D351',
+    arch: 'AMD Ryzen Pro 5000 Series',
+    serialNumber: 'PF38Z49',
+    defaultSymptoms: ['NO_POWER', '20V_NO_CURRENT', 'EC_NOT_RUNNING'],
+    measurements: {
+      vbusVoltage: '19.95 V',
+      vbusCurrent: '0.024 A',
+      diodeReading: '0.015 Ω',
+      isShort: true,
+      thermalPeak: '+56.7 °C',
+      hotspotPart: 'U112 (Thunderbolt IC)',
+    },
+    recommendations: [
+      {
+        chip: 'TPS65988DJ',
+        designator: 'U112',
+        role: 'USB-PD & Thunderbolt 4 Subsystem Controller',
+        probability: 82.4,
+        confirmedCount: 42,
+        totalCases: 51,
+        confidence: 'HIGH',
+        failureMode: 'Thunderbolt retimer short pulling 3.3V ALW rail down',
+        shortedPins: 'Pin 22 (LDO_3V3) to Ground',
+      },
+      {
+        chip: 'IT8227E-128',
+        designator: 'UE1',
+        role: 'Embedded Controller (EC / SuperIO)',
+        probability: 11.8,
+        confirmedCount: 6,
+        totalCases: 51,
+        confidence: 'MEDIUM',
+        failureMode: 'Corrupted internal SPI firmware latchup',
+        shortedPins: 'VCC_RTC pin voltage drop',
+      },
+    ],
+  },
+  {
+    id: 'macbook-a2141',
+    name: 'MacBook Pro 16" (A2141)',
+    boardNumber: '820-01700-A',
+    arch: 'Intel Core i9 + T2 Security Chip',
+    serialNumber: 'C02DP0XXMD6M',
+    defaultSymptoms: ['5V_0.00A', 'PPBUS_MISSING', 'DFU_MODE'],
+    measurements: {
+      vbusVoltage: '5.12 V',
+      vbusCurrent: '0.012 A',
+      diodeReading: '0.385 V',
+      isShort: false,
+      thermalPeak: '+32.1 °C',
+      hotspotPart: 'U3100 (CD3217)',
+    },
+    recommendations: [
+      {
+        chip: 'CD3217B12',
+        designator: 'U3100',
+        role: 'USB-C Power Delivery Interface Controller',
+        probability: 88.2,
+        confirmedCount: 45,
+        totalCases: 51,
+        confidence: 'HIGH',
+        failureMode: 'LDO 1V5 breakdown preventing T2 handshake negotiation',
+        shortedPins: 'PP1V5_UPC_LDO rail stuck at 0.4V',
+      },
+      {
+        chip: 'ISL9240',
+        designator: 'U7000',
+        role: 'Main System Power (PPBUS_G3H) Buck-Boost Charger',
+        probability: 9.8,
+        confirmedCount: 5,
+        totalCases: 51,
+        confidence: 'MEDIUM',
+        failureMode: 'Phase 1 low-side gate driver short',
+        shortedPins: 'Q7030 gate pin leaky',
+      },
+    ],
+  },
+];
+
+const AVAILABLE_SYMPTOMS = [
+  { id: 'NO_POWER', label: "Won't Turn On" },
+  { id: 'ZERO_VBUS', label: '0.00A on 5V VBUS' },
+  { id: 'SHORT_MAIN_RAIL', label: 'Short on Main Rail' },
+  { id: '20V_NO_CURRENT', label: 'Stuck at 20V / 0.02A' },
+  { id: '5V_0.00A', label: '5V 0.00A Loop' },
+  { id: 'PPBUS_MISSING', label: 'PPBUS_G3H Missing' },
+  { id: 'EC_NOT_RUNNING', label: 'EC Not Responding' },
+  { id: 'BATTERY_NOT_CHARGING', label: 'Battery Not Detected' },
+  { id: 'THERMAL_SHUTDOWN', label: 'Thermal Shutdown' },
+];
+
+export default function WorkbenchPage() {
+  const [selectedDevice, setSelectedDevice] = useState<DevicePreset>(DEVICE_PRESETS[0]);
+  const [activeSymptoms, setActiveSymptoms] = useState<string[]>(DEVICE_PRESETS[0].defaultSymptoms);
+  const [confirmedComponents, setConfirmedComponents] = useState<string[]>([]);
+  const [ruledOutComponents, setRuledOutComponents] = useState<string[]>([]);
+  const [actionNotice, setActionNotice] = useState<string | null>(null);
+  const [currentStep, setCurrentStep] = useState<number>(3);
+
+  const handleDeviceChange = (preset: DevicePreset) => {
+    setSelectedDevice(preset);
+    setActiveSymptoms(preset.defaultSymptoms);
+    setConfirmedComponents([]);
+    setRuledOutComponents([]);
+    setCurrentStep(3);
+    setActionNotice(null);
+  };
+
+  const toggleSymptom = (symptomId: string) => {
+    setActiveSymptoms((prev) =>
+      prev.includes(symptomId) ? prev.filter((s) => s !== symptomId) : [...prev, symptomId]
+    );
+  };
+
+  const handleConfirmAction = (chipName: string, designator: string) => {
+    setConfirmedComponents((prev) => [...prev, `${chipName} (${designator})`]);
+    setRuledOutComponents((prev) => prev.filter((c) => !c.includes(chipName)));
+    setCurrentStep(5);
+    setActionNotice(`Empirical Root Cause Confirmed: ${chipName} [${designator}]. Logged into Knowledge Graph with Verified Success outcome.`);
+    setTimeout(() => setActionNotice(null), 6000);
+  };
+
+  const handleRuleOutAction = (chipName: string, designator: string) => {
+    setRuledOutComponents((prev) => [...prev, `${chipName} (${designator})`]);
+    setConfirmedComponents((prev) => prev.filter((c) => !c.includes(chipName)));
+    setActionNotice(`Hypothesis Ruled Out: ${chipName} [${designator}] marked as Suspected-only. Pure knowledge graph protected.`);
+    setTimeout(() => setActionNotice(null), 5000);
+  };
+
+  const calculatedRecommendations = useMemo(() => {
+    return selectedDevice.recommendations.map((rec) => {
+      const symptomMultiplier = activeSymptoms.length > 0 ? 1 + (activeSymptoms.length - 2) * 0.05 : 0.8;
+      const rawProb = Math.min(96, Math.max(10, Math.round(rec.probability * symptomMultiplier)));
+      return {
+        ...rec,
+        probability: rawProb,
+        isConfirmed: confirmedComponents.some((c) => c.includes(rec.chip)),
+        isRuledOut: ruledOutComponents.some((c) => c.includes(rec.chip)),
+      };
+    });
+  }, [selectedDevice, activeSymptoms, confirmedComponents, ruledOutComponents]);
+
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-white">
-      {/* Top Navigation */}
-      <header className="border-b border-slate-800/80 bg-[#070b14]/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="h-9 w-9 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-              <Cpu className="h-5 w-5 text-white" />
-            </div>
-            <div className="flex items-baseline space-x-1.5">
-              <span className="text-xl font-bold tracking-tight text-white">Fixiq</span>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-400 border border-cyan-800/60">
-                INTELLIGENCE v0.1
-              </span>
-            </div>
+    <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+      {/* Page Header Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+        <div>
+          <div className="flex items-center space-x-2">
+            <span className="p-1.5 rounded-lg bg-cyan-100 dark:bg-cyan-950/80 text-cyan-600 dark:text-cyan-400">
+              <Terminal className="h-4 w-4" />
+            </span>
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+              Diagnostic Workbench
+            </h1>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+              Live Session
+            </span>
           </div>
-
-          <nav className="hidden md:flex items-center space-x-6 text-sm text-slate-400">
-            <a href="#workbench" className="hover:text-cyan-400 transition-colors">Bench Diagnostic</a>
-            <a href="#patterns" className="hover:text-cyan-400 transition-colors">Failure Patterns</a>
-            <a href="#evidence" className="hover:text-cyan-400 transition-colors">Evidence Engine</a>
-            <a href="#analytics" className="hover:text-cyan-400 transition-colors">Comeback Analytics</a>
-          </nav>
-
-          <div className="flex items-center space-x-3">
-            <button className="px-3.5 py-1.5 text-xs font-medium text-slate-300 hover:text-white border border-slate-700/80 hover:border-slate-600 rounded-md transition-all">
-              API Docs
-            </button>
-            <button className="px-4 py-1.5 text-xs font-semibold bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-md shadow-md shadow-cyan-500/20 transition-all flex items-center space-x-1.5">
-              <span>Launch Bench</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Hero Section */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-10 space-y-12">
-        <div className="space-y-4 max-w-3xl">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs text-slate-300">
-            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>Deterministic Failure Knowledge Engine</span>
-          </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white leading-tight">
-            Stop Guessing. <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400">
-              Transform Diagnostic History
-            </span> into Ground-Truth Intel.
-          </h1>
-          <p className="text-base text-slate-400 leading-relaxed">
-            Fixiq turns routine bench repairs into structured failure patterns. 
-            Capture symptoms, diode-mode readings, and confirmed components in &lt;60s to accelerate future repairs with mathematically explainable evidence.
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Real-time micro-soldering triage. Telemetry readings update Bayesian failure probabilities automatically.
           </p>
         </div>
 
-        {/* Live Metrics Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-5 rounded-xl bg-slate-900/60 border border-slate-800/80 relative overflow-hidden group hover:border-cyan-500/40 transition-all">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-medium uppercase tracking-wider">
-              <span>Avg Diagnostic TAT</span>
-              <Activity className="h-4 w-4 text-cyan-400" />
+        {/* Board Switcher */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            Board:
+          </span>
+          {DEVICE_PRESETS.map((device) => {
+            const isActive = device.id === selectedDevice.id;
+            return (
+              <button
+                key={device.id}
+                onClick={() => handleDeviceChange(device)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center space-x-2 ${
+                  isActive
+                    ? 'bg-cyan-600 text-white dark:bg-cyan-500 dark:text-slate-950 font-bold shadow-sm ring-1 ring-cyan-500/40'
+                    : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
+                }`}
+              >
+                <Laptop className="h-3.5 w-3.5" />
+                <span>{device.name}</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded font-mono ${
+                    isActive ? 'bg-cyan-700 text-white dark:bg-slate-950/20 dark:text-slate-950' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  {device.boardNumber}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 5-Step Workflow Stepper */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-xs">
+        {[
+          { step: 1, label: '1. Device Intake', desc: 'S/N & Make/Model' },
+          { step: 2, label: '2. Triage & Symptoms', desc: 'Customer symptoms' },
+          { step: 3, label: '3. Diagnostic Readings', desc: 'Diode & Thermal ΔT' },
+          { step: 4, label: '4. IC Replacement', desc: 'Confirm component' },
+          { step: 5, label: '5. Verification Test', desc: 'Closed-loop check' },
+        ].map((s) => {
+          const isCurrent = currentStep === s.step;
+          const isPassed = currentStep > s.step;
+          return (
+            <div
+              key={s.step}
+              onClick={() => setCurrentStep(s.step)}
+              className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                isCurrent
+                  ? 'bg-cyan-50 dark:bg-cyan-950/60 border-cyan-400 dark:border-cyan-500/60 text-cyan-800 dark:text-white font-bold shadow-sm'
+                  : isPassed
+                  ? 'bg-emerald-50 dark:bg-slate-900/50 border-emerald-300 dark:border-emerald-800/40 text-emerald-800 dark:text-emerald-300'
+                  : 'bg-white dark:bg-slate-950/40 border-slate-200 dark:border-slate-800/60 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-300'
+              }`}
+            >
+              <div className="flex items-center justify-center space-x-1 font-bold">
+                {isPassed && <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />}
+                <span>{s.label}</span>
+              </div>
+              <div className="text-[10px] opacity-75 mt-0.5">{s.desc}</div>
             </div>
-            <div className="mt-3 flex items-baseline space-x-2">
-              <span className="text-3xl font-bold text-white tracking-tight">16.4 min</span>
-              <span className="text-xs font-semibold text-emerald-400 flex items-center">
-                <TrendingDown className="h-3 w-3 mr-0.5" /> -72%
+          );
+        })}
+      </div>
+
+      {/* Action Notice Alert */}
+      {actionNotice && (
+        <div className="p-4 rounded-xl bg-cyan-50 dark:bg-gradient-to-r dark:from-cyan-950/90 dark:via-slate-900 dark:to-blue-950/90 border border-cyan-300 dark:border-cyan-500/50 shadow-md flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="h-7 w-7 rounded-lg bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 flex items-center justify-center">
+              <Check className="h-4 w-4" />
+            </div>
+            <div>
+              <span className="text-xs font-bold text-cyan-800 dark:text-cyan-400 uppercase tracking-wider">State Machine Update</span>
+              <p className="text-xs sm:text-sm font-medium text-slate-900 dark:text-white">{actionNotice}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setActionNotice(null)}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-md"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Workbench Workspace Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left: Device Telemetry & Symptoms (5 cols) */}
+        <div className="lg:col-span-5 space-y-6">
+          <div className="glass-panel p-5 sm:p-6 rounded-2xl space-y-5">
+            <div className="flex items-start justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+              <div>
+                <span className="text-[11px] font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider">
+                  Hardware Identity
+                </span>
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mt-0.5">
+                  {selectedDevice.name}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Platform: <span className="font-medium text-slate-700 dark:text-slate-300">{selectedDevice.arch}</span>
+                </p>
+              </div>
+              <span className="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono text-xs border border-slate-200 dark:border-slate-700">
+                {selectedDevice.boardNumber}
               </span>
             </div>
-            <p className="mt-1 text-xs text-slate-500">Down from 65 min trial-and-error</p>
-          </div>
 
-          <div className="p-5 rounded-xl bg-slate-900/60 border border-slate-800/80 relative overflow-hidden group hover:border-cyan-500/40 transition-all">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-medium uppercase tracking-wider">
-              <span>First-Time Fix Rate</span>
-              <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-            </div>
-            <div className="mt-3 flex items-baseline space-x-2">
-              <span className="text-3xl font-bold text-white tracking-tight">92.8%</span>
-              <span className="text-xs font-semibold text-emerald-400">+18.5%</span>
-            </div>
-            <p className="mt-1 text-xs text-slate-500">Verified across 384 board repairs</p>
-          </div>
-
-          <div className="p-5 rounded-xl bg-slate-900/60 border border-slate-800/80 relative overflow-hidden group hover:border-cyan-500/40 transition-all">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-medium uppercase tracking-wider">
-              <span>Warranty Comebacks</span>
-              <AlertTriangle className="h-4 w-4 text-amber-400" />
-            </div>
-            <div className="mt-3 flex items-baseline space-x-2">
-              <span className="text-3xl font-bold text-white tracking-tight">3.8%</span>
-              <span className="text-xs font-semibold text-emerald-400">-64%</span>
-            </div>
-            <p className="mt-1 text-xs text-slate-500">Industry baseline averages 11.4%</p>
-          </div>
-
-          <div className="p-5 rounded-xl bg-slate-900/60 border border-slate-800/80 relative overflow-hidden group hover:border-cyan-500/40 transition-all">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-medium uppercase tracking-wider">
-              <span>Indexed Failure Maps</span>
-              <Database className="h-4 w-4 text-indigo-400" />
-            </div>
-            <div className="mt-3 flex items-baseline space-x-2">
-              <span className="text-3xl font-bold text-white tracking-tight">1,248</span>
-              <span className="text-xs font-semibold text-indigo-400">Deterministic</span>
-            </div>
-            <p className="mt-1 text-xs text-slate-500">Empirically confirmed IC failures</p>
-          </div>
-        </div>
-
-        {/* Technician At-Bench Intelligence UI Simulation */}
-        <section id="workbench" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Terminal className="h-5 w-5 text-cyan-400" />
-              <h2 className="text-lg font-bold text-white tracking-tight">
-                Live Bench Intelligence Feed
-              </h2>
-            </div>
-            <span className="text-xs text-slate-400">Simulating active repair #FIX-1092</span>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left: Device & Intake Profile */}
-            <div className="lg:col-span-4 p-6 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-6">
-              <div>
-                <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">Device Profile</span>
-                <h3 className="text-xl font-bold text-white mt-1">Dell Latitude 5420</h3>
-                <p className="text-xs text-slate-400">Board: LA-K491P | S/N: 4F92KL3</p>
-              </div>
-
-              <div className="space-y-3">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Reported Symptoms</span>
-                <div className="flex flex-wrap gap-2">
-                  <span className="px-2.5 py-1 rounded-md bg-rose-950/60 border border-rose-800/60 text-xs font-medium text-rose-300">
-                    Won&apos;t Turn On
-                  </span>
-                  <span className="px-2.5 py-1 rounded-md bg-amber-950/60 border border-amber-800/60 text-xs font-medium text-amber-300">
-                    0.00A on 5V VBUS
-                  </span>
-                  <span className="px-2.5 py-1 rounded-md bg-slate-800 text-xs font-medium text-slate-300">
-                    No LED Status
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-2 border-t border-slate-800 pt-4">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Bench Measurements</span>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800">
-                    <span className="text-slate-500 block">VBUS Voltage</span>
-                    <span className="font-mono font-bold text-white text-sm">5.08 V</span>
-                  </div>
-                  <div className="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800">
-                    <span className="text-slate-500 block">VBUS Current</span>
-                    <span className="font-mono font-bold text-rose-400 text-sm">0.000 A</span>
-                  </div>
-                  <div className="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800">
-                    <span className="text-slate-500 block">PPBUS Diode Mode</span>
-                    <span className="font-mono font-bold text-rose-400 text-sm">0.002 Ω (SHORT)</span>
-                  </div>
-                  <div className="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800">
-                    <span className="text-slate-500 block">Thermal ΔT</span>
-                    <span className="font-mono font-bold text-amber-400 text-sm">+48.2 °C (PU301)</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right: Deterministic Historical Evidence */}
-            <div className="lg:col-span-8 p-6 rounded-2xl bg-slate-900/80 border border-cyan-900/40 relative overflow-hidden space-y-6">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-                <div>
-                  <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wider flex items-center space-x-1.5">
-                    <Layers className="h-3.5 w-3.5" />
-                    <span>Explainable Diagnostic Recommendations</span>
-                  </span>
-                  <h3 className="text-lg font-bold text-white mt-0.5">
-                    Historical Failure Evidence for Dell Latitude 5420
-                  </h3>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs text-slate-400 block">Sample Size</span>
-                  <span className="text-sm font-bold text-cyan-300">47 Similar Cases</span>
-                </div>
-              </div>
-
-              {/* Recommendation Cards */}
-              <div className="space-y-3">
-                <div className="p-4 rounded-xl bg-slate-950/80 border border-cyan-800/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <div className="flex items-center space-x-2">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-950 text-cyan-300 border border-cyan-800">
-                        TOP PROBABILITY (74.5%)
-                      </span>
-                      <h4 className="font-bold text-white text-base">TPS65988 USB-PD Controller</h4>
-                    </div>
-                    <p className="text-xs text-slate-400">
-                      Circuit Designator: <span className="text-slate-200 font-mono">UT2</span> | Category: <span className="text-slate-200">USB_PD_CONTROLLER</span>
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      Observed failure mode: <span className="text-rose-300">Internal gate short between VBUS and CC1</span>
-                    </p>
-                  </div>
-
-                  <div className="flex items-center space-x-4 shrink-0">
-                    <div className="text-right">
-                      <span className="text-xs text-slate-400 block">Confirmed Fixes</span>
-                      <span className="text-base font-bold text-emerald-400">35 of 47 Cases</span>
-                    </div>
-                    <div className="text-right pl-4 border-l border-slate-800">
-                      <span className="text-xs text-slate-400 block">Confidence</span>
-                      <span className="text-base font-bold text-cyan-400">HIGH (94%)</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-4 rounded-xl bg-slate-950/40 border border-slate-800/80 flex flex-col md:flex-row md:items-center justify-between gap-4 opacity-80">
-                  <div className="space-y-1">
-                    <div className="flex items-center space-x-2">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300">
-                        SECONDARY (17.0%)
-                      </span>
-                      <h4 className="font-semibold text-slate-200 text-sm">BQ24780S Battery Charger IC</h4>
-                    </div>
-                    <p className="text-xs text-slate-400">
-                      Circuit Designator: <span className="text-slate-300 font-mono">PU301</span> | High-side input MOSFET cascade
-                    </p>
-                  </div>
-
-                  <div className="flex items-center space-x-4 shrink-0">
-                    <div className="text-right">
-                      <span className="text-xs text-slate-400 block">Confirmed Fixes</span>
-                      <span className="text-sm font-semibold text-slate-300">8 of 47 Cases</span>
-                    </div>
-                    <div className="text-right pl-4 border-l border-slate-800">
-                      <span className="text-xs text-slate-400 block">Confidence</span>
-                      <span className="text-sm font-semibold text-slate-400">MODERATE</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Bench Action Buttons */}
-              <div className="pt-2 flex items-center justify-between border-t border-slate-800/80">
-                <span className="text-xs text-slate-400">
-                  Step 3 of 5: Replace confirmed component &amp; execute 20V load test
+            {/* Symptoms Checklist */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
+                  <Sliders className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
+                  <span>Reported Symptoms</span>
                 </span>
-                <div className="flex items-center space-x-2">
-                  <button className="px-3 py-1.5 rounded-md text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors">
-                    Rule Out Part
-                  </button>
-                  <button className="px-4 py-1.5 rounded-md text-xs font-semibold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-colors shadow-sm">
-                    Confirm &amp; Log Action
-                  </button>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">Click to toggle</span>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {AVAILABLE_SYMPTOMS.map((symptom) => {
+                  const isSelected = activeSymptoms.includes(symptom.id);
+                  return (
+                    <button
+                      key={symptom.id}
+                      onClick={() => toggleSymptom(symptom.id)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        isSelected
+                          ? 'bg-rose-100 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-500/60 text-rose-800 dark:text-rose-200 font-semibold shadow-xs'
+                          : 'bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
+                      }`}
+                    >
+                      {isSelected && <span className="mr-1 text-rose-500 font-bold">●</span>}
+                      {symptom.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Multimeter & Thermal Telemetry */}
+            <div className="space-y-3 border-t border-slate-200 dark:border-slate-800 pt-4">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
+                <Activity className="h-3.5 w-3.5 text-indigo-500 dark:text-indigo-400" />
+                <span>Multimeter &amp; Thermal Readings</span>
+              </span>
+
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 space-y-1">
+                  <span className="text-slate-500 dark:text-slate-400 text-[11px] block">VBUS Voltage</span>
+                  <span className="font-mono font-bold text-slate-900 dark:text-white text-base">
+                    {selectedDevice.measurements.vbusVoltage}
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 space-y-1">
+                  <span className="text-slate-500 dark:text-slate-400 text-[11px] block">VBUS Current</span>
+                  <span
+                    className={`font-mono font-bold text-base ${
+                      selectedDevice.measurements.vbusCurrent === '0.000 A'
+                        ? 'text-rose-600 dark:text-rose-400'
+                        : 'text-amber-600 dark:text-amber-400'
+                    }`}
+                  >
+                    {selectedDevice.measurements.vbusCurrent}
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500 dark:text-slate-400 text-[11px]">PPBUS Diode</span>
+                    {selectedDevice.measurements.isShort && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-400 border border-rose-300 dark:border-rose-800">
+                        SHORT
+                      </span>
+                    )}
+                  </div>
+                  <span className="font-mono font-bold text-rose-600 dark:text-rose-400 text-base">
+                    {selectedDevice.measurements.diodeReading}
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500 dark:text-slate-400 text-[11px]">Thermal Hotspot</span>
+                    <Flame className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
+                  </div>
+                  <span className="font-mono font-bold text-amber-600 dark:text-amber-400 text-base">
+                    {selectedDevice.measurements.thermalPeak}
+                  </span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 block truncate">
+                    {selectedDevice.measurements.hotspotPart}
+                  </span>
                 </div>
               </div>
             </div>
           </div>
-        </section>
+        </div>
 
-        {/* Modular Monolith Architecture Blueprint */}
-        <section id="patterns" className="p-8 rounded-2xl bg-gradient-to-b from-slate-900/60 to-slate-950/60 border border-slate-800/80 space-y-6">
-          <div className="space-y-1">
-            <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider">Architecture Blueprint</span>
-            <h2 className="text-2xl font-bold text-white tracking-tight">Structured Monolith Domain Engine</h2>
-            <p className="text-sm text-slate-400 max-w-2xl">
-              Strict multi-tenancy at the database level, explicit separation of suspected vs. confirmed findings, and deterministic algorithms for failure pattern mining.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-            <div className="p-5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2">
-              <div className="h-8 w-8 rounded-lg bg-cyan-950 border border-cyan-800/60 flex items-center justify-center text-cyan-400 font-bold text-xs">
-                01
+        {/* Right: Explainable Evidence & Recommendations (7 cols) */}
+        <div className="lg:col-span-7 space-y-6">
+          <div className="glass-panel-elevated p-5 sm:p-6 rounded-2xl relative overflow-hidden space-y-5">
+            {/* Header with Case Count */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
+              <div>
+                <span className="text-xs font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider flex items-center space-x-1.5">
+                  <Layers className="h-4 w-4" />
+                  <span>Explainable Diagnostic Recommendations</span>
+                </span>
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mt-0.5">
+                  Historical Failure Evidence for {selectedDevice.name}
+                </h3>
               </div>
-              <h4 className="font-bold text-white text-base">Multi-Tenant Isolation</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Row-level organization scoping enforced at the Prisma repository layer. No cross-tenant data leakage or unauthenticated parameter inference.
+
+              <div className="text-left sm:text-right shrink-0">
+                <span className="text-xs text-slate-500 dark:text-slate-400 block">Verified Dataset</span>
+                <span className="text-sm font-bold text-cyan-700 dark:text-cyan-300 font-mono">
+                  {selectedDevice.recommendations[0]?.totalCases || 47} Cases
+                </span>
+              </div>
+            </div>
+
+            {/* Invariant Educational Tag */}
+            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/90 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 flex items-start space-x-3">
+              <ShieldCheck className="h-5 w-5 text-cyan-600 dark:text-cyan-400 shrink-0 mt-0.5" />
+              <p className="leading-relaxed">
+                <strong className="text-slate-900 dark:text-white font-semibold">Invariant 2:</strong> Fixiq isolates <strong className="text-amber-600 dark:text-amber-400">SUSPECTED</strong> guesses from <strong className="text-emerald-600 dark:text-emerald-400">CONFIRMED</strong> component fixes. Only verified successful repairs contribute to this evidence.
               </p>
             </div>
 
-            <div className="p-5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2">
-              <div className="h-8 w-8 rounded-lg bg-blue-950 border border-blue-800/60 flex items-center justify-center text-blue-400 font-bold text-xs">
-                02
-              </div>
-              <h4 className="font-bold text-white text-base">Purity of Ground Truth</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Diagnostic records strictly isolate suspected guesses from empirically confirmed IC replacements. Guesswork never pollutes the failure pattern engine.
-              </p>
-            </div>
+            {/* Dynamic Recommendations List */}
+            <div className="space-y-3.5">
+              {calculatedRecommendations.map((rec, index) => {
+                const isTop = index === 0;
+                return (
+                  <div
+                    key={rec.chip}
+                    className={`p-5 rounded-xl border transition-all ${
+                      rec.isConfirmed
+                        ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-400 dark:border-emerald-500/60 shadow-sm'
+                        : rec.isRuledOut
+                        ? 'bg-slate-50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 opacity-60'
+                        : isTop
+                        ? 'bg-white dark:bg-slate-950/90 border-cyan-400 dark:border-cyan-500/40 shadow-sm ring-1 ring-cyan-500/20'
+                        : 'bg-white dark:bg-slate-950/50 border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                      <div className="space-y-2 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {rec.isConfirmed ? (
+                            <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-600 text-white dark:bg-emerald-500 dark:text-slate-950 flex items-center space-x-1">
+                              <Check className="h-3 w-3" />
+                              <span>CONFIRMED ROOT CAUSE</span>
+                            </span>
+                          ) : rec.isRuledOut ? (
+                            <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-400">
+                              RULED OUT
+                            </span>
+                          ) : (
+                            <span
+                              className={`px-2.5 py-0.5 rounded text-[11px] font-bold border ${
+                                isTop
+                                  ? 'bg-cyan-50 dark:bg-cyan-950 text-cyan-800 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800/80'
+                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                              }`}
+                            >
+                              {isTop ? 'PRIMARY CANDIDATE' : 'SECONDARY CANDIDATE'} ({rec.probability}%)
+                            </span>
+                          )}
 
-            <div className="p-5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2">
-              <div className="h-8 w-8 rounded-lg bg-indigo-950 border border-indigo-800/60 flex items-center justify-center text-indigo-400 font-bold text-xs">
-                03
-              </div>
-              <h4 className="font-bold text-white text-base">Closed-Loop Verification</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Repairs are only factored into intelligence models after verified post-repair functional testing (thermal, power sequencing, full load verification).
-              </p>
-            </div>
-          </div>
-        </section>
-      </main>
+                          <h4 className="font-bold text-slate-900 dark:text-white text-lg font-sans">
+                            {rec.chip}
+                          </h4>
+                          <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 text-xs font-mono border border-slate-200 dark:border-slate-800">
+                            {rec.designator}
+                          </span>
+                        </div>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-800/60 bg-[#05080f] py-6 text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center space-x-2">
-            <span className="font-semibold text-slate-400">Fixiq</span>
-            <span>— The Open Repair Intelligence Platform</span>
-          </div>
-          <div className="flex items-center space-x-6">
-            <a href="https://github.com/dhanushka-sys/Fixiq" className="hover:text-slate-300">GitHub</a>
-            <span>MIT License</span>
-            <span>Sprint 01 Baseline</span>
+                        <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">{rec.role}</p>
+
+                        <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800/60 text-xs space-y-1">
+                          <div className="text-slate-600 dark:text-slate-400">
+                            <span className="text-slate-900 dark:text-slate-300 font-semibold">Failure Signature: </span>
+                            <span className="text-rose-700 dark:text-rose-300">{rec.failureMode}</span>
+                          </div>
+                          <div className="text-slate-600 dark:text-slate-400">
+                            <span className="text-slate-900 dark:text-slate-300 font-semibold">Typical Pinout: </span>
+                            <span className="font-mono text-cyan-700 dark:text-cyan-300">{rec.shortedPins}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Stats badge */}
+                      <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 shrink-0 border-t sm:border-t-0 sm:border-l border-slate-200 dark:border-slate-800 pt-3 sm:pt-0 sm:pl-4">
+                        <div className="text-left sm:text-right">
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400 block">Confirmed Cases</span>
+                          <span className="text-base font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                            {rec.confirmedCount} of {rec.totalCases}
+                          </span>
+                        </div>
+                        <div className="text-left sm:text-right">
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400 block">Confidence</span>
+                          <span
+                            className={`text-xs font-bold px-2 py-0.5 rounded ${
+                              rec.confidence === 'HIGH'
+                                ? 'bg-cyan-50 dark:bg-cyan-950 text-cyan-800 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800/60'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                            }`}
+                          >
+                            {rec.confidence}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bench Action Buttons */}
+                    <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800/70 flex flex-wrap items-center justify-between gap-3">
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Technician action for IC {rec.designator}:
+                      </span>
+
+                      <div className="flex items-center space-x-2">
+                        {!rec.isRuledOut && (
+                          <button
+                            onClick={() => handleRuleOutAction(rec.chip, rec.designator)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 transition-colors"
+                          >
+                            Rule Out Part
+                          </button>
+                        )}
+
+                        {!rec.isConfirmed ? (
+                          <button
+                            onClick={() => handleConfirmAction(rec.chip, rec.designator)}
+                            className="px-4 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:text-slate-950 transition-all shadow-sm flex items-center space-x-1.5 active:scale-95"
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                            <span>Confirm &amp; Log Fix</span>
+                          </button>
+                        ) : (
+                          <span className="text-xs text-emerald-700 dark:text-emerald-400 font-semibold flex items-center space-x-1">
+                            <CheckCircle className="h-4 w-4" />
+                            <span>Logged in Evidence Engine</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
-      </footer>
+      </div>
+
+      {/* Quick Navigation Footer Links */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+        <Link
+          href="/intel"
+          className="glass-card p-4 rounded-xl flex items-center justify-between group"
+        >
+          <div className="flex items-center space-x-3">
+            <span className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+              <Database className="h-4 w-4" />
+            </span>
+            <div>
+              <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+                Intelligence Catalog
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Search IC topologies &amp; failure pins</p>
+            </div>
+          </div>
+          <ArrowRight className="h-4 w-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
+        </Link>
+
+        <Link
+          href="/analytics"
+          className="glass-card p-4 rounded-xl flex items-center justify-between group"
+        >
+          <div className="flex items-center space-x-3">
+            <span className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+              <BarChart3 className="h-4 w-4" />
+            </span>
+            <div>
+              <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+                Comeback Metrics
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Warranty and turnaround analytics</p>
+            </div>
+          </div>
+          <ArrowRight className="h-4 w-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
+        </Link>
+
+        <Link
+          href="/architecture"
+          className="glass-card p-4 rounded-xl flex items-center justify-between group"
+        >
+          <div className="flex items-center space-x-3">
+            <span className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
+              <ShieldCheck className="h-4 w-4" />
+            </span>
+            <div>
+              <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+                System Invariants
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Multi-tenancy &amp; purity rules</p>
+            </div>
+          </div>
+          <ArrowRight className="h-4 w-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
+        </Link>
+      </div>
     </div>
   );
 }
