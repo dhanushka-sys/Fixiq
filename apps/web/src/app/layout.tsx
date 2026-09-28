@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '../components/theme-provider';
 import { AppShell } from '../components/app-shell';
+import { HydrationFix } from '../components/hydration-fix';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -51,6 +52,9 @@ export default function RootLayout({
       className={`scroll-smooth ${inter.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >
+      <head>
+        <HydrationFix />
+      </head>
       <body
         className="min-h-screen bg-slate-50 dark:bg-[#060913] text-slate-900 dark:text-slate-100 font-sans antialiased selection:bg-cyan-500 selection:text-slate-950 overflow-x-hidden transition-colors duration-200"
         suppressHydrationWarning

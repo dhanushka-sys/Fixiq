@@ -129,3 +129,50 @@ Permissions are checked on every protected endpoint using server-side authorizat
 * **Unit Tests (`Vitest`):** Pure functions, deterministic failure calculations, state transitions, validation schemas.
 * **Integration Tests:** API endpoints with PostgreSQL test container, testing tenant isolation and authorization.
 * **E2E Tests (`Playwright`):** Complete technician workflow: Login $\rightarrow$ Create Customer $\rightarrow$ Register Device $\rightarrow$ Intake Repair $\rightarrow$ Log Symptoms & Observations $\rightarrow$ Confirm Component $\rightarrow$ Record Test $\rightarrow$ Verify Intelligence Generation.
+
+---
+
+## 7. Frontend Architecture, Hydration & UX Best Practices
+
+### Hydration Integrity & Browser Extension Resilience
+* **Browser Extension Attribute Injection (`bis_skin_checked`, etc.):**
+  * Third-party browser extensions (ColorZilla, Bitdefender, VPN plugins, password managers) frequently inject attributes like `bis_skin_checked="1"` or `data-lastpass-root` into DOM elements before or during React hydration.
+  * **Sanitization:** Root layout must include the synchronous `<HydrationFix />` sanitizer in `<head>` that cleans and observes injected attributes using a `MutationObserver` on `document.documentElement`.
+  * **Suppression:** Always apply `suppressHydrationWarning` on `<html>`, `<body>`, and root layout shell wrappers.
+* **Client-Side Only State:**
+  * Dynamic or environment-dependent values (`Date.now()`, `Math.random()`, `window.innerWidth`, locale formatting) must never be evaluated directly in the render phase of SSR components.
+  * Always initialize client-only state inside `useEffect` or behind mounting guards (`isMounted`).
+
+### Responsive Mobile-First & Touch Usability
+* **Dual-View Data Presentations:**
+  * Complex data tables must provide an adaptive dual view:
+    * **Mobile (`< sm`):** High-density, thumb-friendly tap cards displaying key identifiers (Ticket #, Device, Board, Status) and prominent action buttons.
+    * **Desktop (`≥ sm`):** Multi-column structured data tables with responsive horizontal scroll fallback.
+* **Touch Target Standards:**
+  * All interactive elements (navigation links, buttons, filter chips) must have a minimum tap height of **42px to 44px** on mobile viewports.
+* **Scroll & Modal Management:**
+  * Always lock background document scrolling (`document.body.style.overflow = 'hidden'`) when mobile navigation drawers or modal dialogs (like the Command Palette) are open.
+  * Always implement `Escape` key listeners and backdrop tap dismissal for all overlays.
+* **Global Command Palette (`⌘K` / `Ctrl+K`):**
+  * Provide global keyboard shortcuts and mobile quick-search triggers for instant fuzzy-navigation across tickets, devices, components, and views.
+
+---
+
+## 8. Git Branching & Conventional Commits Workflow
+
+* **Branching Strategy:**
+  * All active development must occur in dedicated feature/sub-branches (`develop` or `feature/*`). Never commit directly to `main`.
+* **Major & Atomic Commits:**
+  * Group logically cohesive sets of enhancements into clear, major commits.
+  * Avoid committing noisy intermediate broken states.
+  * Follow **Conventional Commits** formatting:
+    * `feat(web): ...` for new capabilities or UX views.
+    * `fix(web): ...` for bug fixes or hydration error resolutions.
+    * `refactor(web): ...` for code quality, cleanup, and restructuring.
+    * `docs: ...` for architectural or guideline updates.
+* **Pre-Push Quality Gate:**
+  * Always execute and pass workspace type-checking and production builds prior to pushing:
+    ```powershell
+    npm.cmd run typecheck; npm.cmd run build --workspace=@fixiq/web
+    ```
+
