@@ -89,7 +89,7 @@ export function Topbar({ onOpenMobile }: TopbarProps) {
               ? 'bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-800'
               : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/50'
           }`}
-          title="Fastify/Express backend connection on port 4000"
+          title="Real-time operational status"
         >
           <span
             className={`h-2 w-2 rounded-full ${
@@ -100,8 +100,8 @@ export function Topbar({ onOpenMobile }: TopbarProps) {
                 : 'bg-amber-500'
             }`}
           />
-          <span className="font-mono text-[11px]">
-            {apiStatus === 'online' ? 'API :4000 Active' : apiStatus === 'checking' ? 'Connecting...' : 'API Standalone'}
+          <span className="text-[11px] font-medium">
+            {apiStatus === 'online' ? 'System Operational' : apiStatus === 'checking' ? 'Connecting...' : 'Offline Cache'}
           </span>
         </div>
 

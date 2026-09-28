@@ -62,9 +62,8 @@ export function Sidebar({
       ],
     },
     {
-      group: 'SYSTEM',
+      group: null,
       items: [
-        { href: '/architecture', label: 'Invariants', icon: ShieldCheck, badge: null },
         { href: '/settings', label: 'Settings', icon: Settings, badge: null },
       ],
     },
